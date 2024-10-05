@@ -1,0 +1,35 @@
+{
+    "name": "sufaweb",
+    "short_name": "sufaweb",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#343434FF",
+    "theme_color": "#C8C8C8FF",
+    "description": "A new Flutter project.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "logoOscuro3.jpeg",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "logoOscuro3.jpeg",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "logoOscuro3.jpeg",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "logoOscuro3.jpeg",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
