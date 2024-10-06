@@ -43,18 +43,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Grupo Terrawa',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0XFFF4F4F4)),
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xfff4f4f4), Color(0xfff4f4f4)],
-          ),
-        ),
-        child: const UploadScreen(),
-      ),
+      home: const UploadScreen(),
     );
   }
 }

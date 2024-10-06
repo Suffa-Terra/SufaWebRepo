@@ -5,7 +5,8 @@ class TERRAINCAMANOVILLOScreen extends StatefulWidget {
   const TERRAINCAMANOVILLOScreen({Key? key}) : super(key: key);
 
   @override
-  _TERRAINCAMANOVILLOScreenState createState() => _TERRAINCAMANOVILLOScreenState();
+  _TERRAINCAMANOVILLOScreenState createState() =>
+      _TERRAINCAMANOVILLOScreenState();
 }
 
 class _TERRAINCAMANOVILLOScreenState extends State<TERRAINCAMANOVILLOScreen> {
@@ -118,76 +119,123 @@ class _TERRAINCAMANOVILLOScreenState extends State<TERRAINCAMANOVILLOScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xfff4f4f4), Color(0xfff4f4f4)],
-          ),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40.0),
-                    bottomRight: Radius.circular(40.0),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      offset: Offset(5, 5),
-                      color: Color.fromARGB(80, 0, 0, 0),
-                      blurRadius: 5,
-                    ),
-                    BoxShadow(
-                        offset: Offset(-5, -5),
-                        color: Color.fromARGB(150, 255, 255, 255),
-                        blurRadius: 5),
-                  ],
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                 ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(40.0),
-                    bottomLeft: Radius.circular(40.0),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40.0),
+                  bottomRight: Radius.circular(40.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    offset: Offset(5, 5),
+                    color: Color.fromARGB(80, 0, 0, 0),
+                    blurRadius: 5,
                   ),
-                  child: Table(
-                    border: TableBorder.all(
-                      color: Colors.transparent,
-                    ),
-                    children: [
-                      const TableRow(
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
+                  BoxShadow(
+                      offset: Offset(-5, -5),
+                      color: Color.fromARGB(150, 255, 255, 255),
+                      blurRadius: 5),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(40.0),
+                  bottomLeft: Radius.circular(40.0),
+                ),
+                child: Table(
+                  border: TableBorder.all(
+                    color: Colors.transparent,
+                  ),
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      children: [
+                        TableCell(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                'N°',
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
+                        TableCell(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                'Hectáreas',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        TableCell(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                'Piscinas',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        TableCell(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                'Acciones',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    for (int i = 0;
+                        i < getCurrentPageCAMANOVILLOItems().length;
+                        i++)
+                      TableRow(
                         children: [
                           TableCell(
                             child: Padding(
-                              padding: EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(8.0),
                               child: Center(
                                 child: Text(
-                                  'N°',
-                                  style: TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          TableCell(
-                            child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text(
-                                  'Hectáreas',
-                                  style: TextStyle(
+                                  (currentPageCAMANOVILLO *
+                                              itemsPerPageCAMANOVILLO +
+                                          i +
+                                          1)
+                                      .toString(), // Contador de filas
+                                  style: const TextStyle(
                                     fontSize: 14.0,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -197,157 +245,103 @@ class _TERRAINCAMANOVILLOScreenState extends State<TERRAINCAMANOVILLOScreen> {
                           ),
                           TableCell(
                             child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text(
-                                  'Piscinas',
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextField(
+                                onChanged: (value) {
+                                  rows[i +
+                                          currentPageCAMANOVILLO *
+                                              itemsPerPageCAMANOVILLO]
+                                      ['Hectareas'] = value;
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: 'Hectareas',
                                 ),
+                                controller: TextEditingController(
+                                    text: getCurrentPageCAMANOVILLOItems()[i]
+                                        ['Hectareas']),
                               ),
                             ),
                           ),
                           TableCell(
                             child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text(
-                                  'Acciones',
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextField(
+                                onChanged: (value) {
+                                  rows[i +
+                                          currentPageCAMANOVILLO *
+                                              itemsPerPageCAMANOVILLO]
+                                      ['Piscinas'] = value;
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: 'Piscinas',
                                 ),
+                                controller: TextEditingController(
+                                    text: getCurrentPageCAMANOVILLOItems()[i]
+                                        ['Piscinas']),
+                              ),
+                            ),
+                          ),
+                          TableCell(
+                            child: Center(
+                              child: IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () {
+                                  removeRow(i);
+                                },
                               ),
                             ),
                           ),
                         ],
                       ),
-                      for (int i = 0;
-                          i < getCurrentPageCAMANOVILLOItems().length;
-                          i++)
-                        TableRow(
-                          children: [
-                            TableCell(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Center(
-                                  child: Text(
-                                    (currentPageCAMANOVILLO *
-                                                itemsPerPageCAMANOVILLO +
-                                            i +
-                                            1)
-                                        .toString(), // Contador de filas
-                                    style: const TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            TableCell(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: TextField(
-                                  onChanged: (value) {
-                                    rows[i +
-                                            currentPageCAMANOVILLO *
-                                                itemsPerPageCAMANOVILLO]
-                                        ['Hectareas'] = value;
-                                  },
-                                  decoration: const InputDecoration(
-                                    hintText: 'Hectareas',
-                                  ),
-                                  controller: TextEditingController(
-                                      text: getCurrentPageCAMANOVILLOItems()[i]
-                                          ['Hectareas']),
-                                ),
-                              ),
-                            ),
-                            TableCell(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: TextField(
-                                  onChanged: (value) {
-                                    rows[i +
-                                            currentPageCAMANOVILLO *
-                                                itemsPerPageCAMANOVILLO]
-                                        ['Piscinas'] = value;
-                                  },
-                                  decoration: const InputDecoration(
-                                    hintText: 'Piscinas',
-                                  ),
-                                  controller: TextEditingController(
-                                      text: getCurrentPageCAMANOVILLOItems()[i]
-                                          ['Piscinas']),
-                                ),
-                              ),
-                            ),
-                            TableCell(
-                              child: Center(
-                                child: IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () {
-                                    removeRow(i);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: currentPageCAMANOVILLO > 0 ? previousPage : null,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor:
-                        currentPageCAMANOVILLO > 0 ? null : Colors.white,
-                    backgroundColor:
-                        currentPageCAMANOVILLO > 0 ? null : Colors.red,
-                  ),
-                  child: const Text('Anterior'),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: currentPageCAMANOVILLO > 0 ? previousPage : null,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor:
+                      currentPageCAMANOVILLO > 0 ? null : Colors.white,
+                  backgroundColor:
+                      currentPageCAMANOVILLO > 0 ? null : Colors.red,
                 ),
-                Text(
-                  'Página ${currentPageCAMANOVILLO + 1}',
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: const Text('Anterior'),
+              ),
+              Text(
+                'Página ${currentPageCAMANOVILLO + 1}',
+                style: const TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.bold,
                 ),
-                ElevatedButton(
-                  onPressed:
+              ),
+              ElevatedButton(
+                onPressed:
+                    (currentPageCAMANOVILLO + 1) * itemsPerPageCAMANOVILLO <
+                            rows.length
+                        ? nextPage
+                        : null,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor:
                       (currentPageCAMANOVILLO + 1) * itemsPerPageCAMANOVILLO <
                               rows.length
-                          ? nextPage
-                          : null,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor:
-                        (currentPageCAMANOVILLO + 1) * itemsPerPageCAMANOVILLO <
-                                rows.length
-                            ? null
-                            : Colors.white,
-                    backgroundColor:
-                        (currentPageCAMANOVILLO + 1) * itemsPerPageCAMANOVILLO <
-                                rows.length
-                            ? null
-                            : Colors.red,
-                  ),
-                  child: const Text('Siguiente'),
+                          ? null
+                          : Colors.white,
+                  backgroundColor:
+                      (currentPageCAMANOVILLO + 1) * itemsPerPageCAMANOVILLO <
+                              rows.length
+                          ? null
+                          : Colors.red,
                 ),
-              ],
-            ),
-          ],
-        ),
+                child: const Text('Siguiente'),
+              ),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,

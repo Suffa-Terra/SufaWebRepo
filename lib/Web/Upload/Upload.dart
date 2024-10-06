@@ -177,12 +177,23 @@ class _UploadScreenState extends State<UploadScreen> {
           },
         ),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            // Eliminamos el 'const' aquí
+            borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(20.0),
               bottomRight: Radius.circular(20.0),
             ),
-            color: Color(0XFFF4F4F4),
+            color: const Color(0XFFF4F4F4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black
+                    .withOpacity(0.2), // Método no puede estar en 'const'
+                offset: const Offset(
+                    0, 5), // Mantener 'const' en valores constantes
+                blurRadius: 15,
+                spreadRadius: 3,
+              ),
+            ],
           ),
         ),
       ),
@@ -965,7 +976,7 @@ class _UploadScreenState extends State<UploadScreen> {
                         child: Container(
                           decoration: const BoxDecoration(
                             gradient: LinearGradient(
-                             colors: [Color(0xfff5ede3), Color(0xfff6f2f0)],
+                              colors: [Color(0xfff5ede3), Color(0xfff6f2f0)],
                               begin: Alignment.topRight,
                               end: Alignment.bottomLeft,
                             ),
@@ -1046,16 +1057,9 @@ class _UploadScreenState extends State<UploadScreen> {
           ],
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xfff4f4f4), Color(0xfff4f4f4)],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: getSelectedScreen(_selectedScreen),
-        ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: getSelectedScreen(_selectedScreen),
       ),
     );
   }
