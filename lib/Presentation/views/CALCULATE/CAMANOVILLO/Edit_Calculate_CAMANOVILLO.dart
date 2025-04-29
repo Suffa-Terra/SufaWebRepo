@@ -1798,7 +1798,7 @@ class _Edit_Calculate_CAMANOVILLOState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!_editable) ...[
+                if (_editable) ...[
                   const SizedBox(height: 10),
                   const Text(
                     "✏️ Edición de Datos Clave",
@@ -1903,7 +1903,7 @@ class _Edit_Calculate_CAMANOVILLOState
                     ),
                   ),
                 ],
-                if (_editable) ...[
+                if (!_editable) ...[
                   const SizedBox(height: 10),
                   Container(
                     constraints: const BoxConstraints(
