@@ -11,7 +11,7 @@
     For more details:
     * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
   -->
-  <base href="/">
+  <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -26,27 +26,32 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="logoOscuro3.jpeg"/>
 
-  <title>Grupo Terrawa</title>
+  <title>Azaktilsa S.A</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Flutter initialization code -->
   <script>
-    window.addEventListener('load', function(ev) {
-        _flutter.loader.loadEntrypoint({
-            serviceWorker: null, // Elimina el service worker temporalmente
-            onEntrypointLoaded: function(engineInitializer) {
-                engineInitializer.initializeEngine().then(function(appRunner) {
-                    appRunner.runApp();
-                });
-            }
-        });
-    });
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
   </script>
-
-
+  <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
 <body>
-  <!-- The application will be injected into the body -->
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
+
 </html>
