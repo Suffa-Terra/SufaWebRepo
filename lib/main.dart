@@ -9,6 +9,9 @@ import 'package:sufaweb/Presentation/admin/admin_screen.dart';
 import 'package:sufaweb/Presentation/client/client_screen.dart';
 import 'package:sufaweb/Router/Login.dart';
 import 'package:sufaweb/Router/routes.dart';
+import 'package:sufaweb/Widgets/PullToRefreshWrapper.dart';
+import 'package:sufaweb/Widgets/RefreshWrapper.dart';
+import 'package:sufaweb/Widgets/RestartWidget.dart';
 import 'package:sufaweb/Widgets/connectivity_service.dart';
 import 'package:sufaweb/Widgets/offline_screen.dart';
 import 'package:sufaweb/Widgets/splash_screen.dart';
@@ -42,9 +45,11 @@ void main() async {
   final pref = await SharedPreferences.getInstance();
   final seenOnboarding = pref.getBool('seenOnboarding') ?? false;
 
-  runApp(MyApp(
-    seenOnboarding: seenOnboarding,
-    isOnline: hasConnection,
+  runApp(RestartWidget(
+    child: MyApp(
+      seenOnboarding: seenOnboarding,
+      isOnline: hasConnection,
+    ),
   ));
 }
 
@@ -77,9 +82,10 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: isOnline
-          ? SplashScreen(seenOnboarding: seenOnboarding)
-          : const OfflineScreen(),
+      home: RefreshWrapper(
+        isOnline: isOnline,
+        seenOnboarding: seenOnboarding,
+      ),
       routes: routes,
     );
   }
@@ -118,9 +124,9 @@ class AuthenticationWrapper extends StatelessWidget {
           String role = userData['role'] ?? '';
 
           if (role == 'Client') {
-            return const ClientScreen();
+            return const PullToRefreshWrapper(child: ClientScreen());
           } else if (role == 'admin') {
-            return const AdminScreen();
+            return const PullToRefreshWrapper(child: AdminScreen());
           } else {
             return const Center(
               child: Text(
