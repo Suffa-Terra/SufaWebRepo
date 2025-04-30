@@ -1,66 +1,80 @@
-// ignore_for_file: unnecessary_null_comparison, unused_local_variable, use_build_context_synchronously
+// ignore_for_file: camel_case_types, unnecessary_null_comparison
 
-import 'dart:async';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Controller/Dato_Logic.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Controller/TutorialHelper.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Widgets/calculate_button.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Widgets/hect_select.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Widgets/input_card.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Widgets/result_card.dart';
+import 'package:sufaweb/Presentation/views/FINCAS/Widgets/tutorial_targets.dart';
 import 'package:sufaweb/env_loader.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class DatoCAMANOVILLO_Screen extends StatefulWidget {
-  const DatoCAMANOVILLO_Screen({Key? key}) : super(key: key);
+  const DatoCAMANOVILLO_Screen({super.key});
 
   @override
-  _DatoCAMANOVILLO_ScreenState createState() => _DatoCAMANOVILLO_ScreenState();
+  State<DatoCAMANOVILLO_Screen> createState() => _DatoCAMANOVILLO_ScreenState();
 }
 
 class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
-  bool _showResults_CAMANOVILLO = false;
-  final ScrollController _scrollController_CAMANOVILLO = ScrollController();
-  String? selectedHectareas;
-  String? selectedPiscinas;
-  String? selectedGramos;
-
-  List<Map<String, dynamic>> CAMANOVILLOData = [];
-  List<Map<String, dynamic>> rendimientoData = [];
-
-  List<String> piscinasOptions_CAMANOVILLO = [];
-  Map<String, dynamic>? selectedTerreno;
-
-  final DatabaseReference _CAMANOVILLORef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
-
-  final DatabaseReference _rendimientoRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('RENDIMIENTO_ROWS')!);
-
+  // 🔸 Controladores
   final TextEditingController _pesoController = TextEditingController();
   final TextEditingController _consumoController = TextEditingController();
+  final TextEditingController _HectareasController = TextEditingController();
   final TextEditingController _piscinasController = TextEditingController();
   final TextEditingController _gramosController = TextEditingController();
-  final TextEditingController _HectareasController = TextEditingController();
-  // Define un TextEditingController en tu clase de estado
+
   final TextEditingController _kgXHaController = TextEditingController();
   final TextEditingController _RendimientoController = TextEditingController();
   final TextEditingController _LibrasXHaController = TextEditingController();
   final TextEditingController _LibrasTotalController = TextEditingController();
-  final TextEditingController _calculateAnimalesMController =
-      TextEditingController();
   final TextEditingController _calculateError2Controller =
       TextEditingController();
+  final TextEditingController _calculateAnimalesMController =
+      TextEditingController();
+
+  // 🔸 Datos y estado
+  final DatabaseReference _CAMANOVILLORef =
+      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
+  final DatabaseReference _camanovilloRef =
+      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
+  final DatabaseReference _rendimientoRef =
+      FirebaseDatabase.instance.ref(EnvLoader.get('RENDIMIENTO_ROWS')!);
+
+  List<Map<String, dynamic>> rendimientoData = [];
   List<String> _hectareasPiscinas = [];
   String _selectedFinca = 'CAMANOVILLO';
+  List<Map<String, dynamic>> CAMANOVILLOData = [];
+  Map<String, dynamic>? selectedTerreno;
+  List<String> piscinasOptions_CAMANOVILLO = [];
+
+  String? selectedPiscinas;
+  String? selectedHectareas;
+  final ScrollController _scrollController_ = ScrollController();
+  bool _showResults = false;
   int _currentPage = 0;
   final int _itemsPerPage = 6;
 
-  Timer? _timerDATO;
+  // 🔸 Keys para tutorial
+  final GlobalKey _SelectPiscDATO = GlobalKey();
+  final GlobalKey _BeforeDATO = GlobalKey();
+  final GlobalKey _AfterDATO = GlobalKey();
+  final GlobalKey _ConsumoDATO = GlobalKey();
+  final GlobalKey _PesoAdmin = GlobalKey();
+  final GlobalKey _calcularbuttonDATO = GlobalKey();
+  final GlobalKey _resetTutorialDATO = GlobalKey();
+  final List<TargetFocus> _initTargetsDATO = [];
 
   void _addListeners() {
     _HectareasController.addListener(_updateCalculations);
     _piscinasController.addListener(_updateCalculations);
     _gramosController.addListener(_updateCalculations);
     _consumoController.addListener(_updateCalculations);
+    _pesoController.addListener(_updateCalculations);
   }
 
   void _updateCalculations() {}
@@ -126,23 +140,51 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
       _HectareasController.clear();
     }
     // Aquí llama a las funciones de cálculo
-    _calculateKgXHa();
-    _calculateLibrasXHa();
-    _calculateLibrasTotal();
-    _calculateError2();
-    _calculateAnimalesM();
   }
 
-  void _addData() {
+  void _calculateFunction() {
+    Dato_Logic.calculateKgXHa(
+      consumoController: _consumoController,
+      hectareasController: _HectareasController,
+      kgXHaController: _kgXHaController,
+    );
+    Dato_Logic.calculateLibrasXHa(
+      rendimientoController: _RendimientoController,
+      kgXHaController: _kgXHaController,
+      librasXHaController: _LibrasXHaController,
+    );
+    Dato_Logic.calculateLibrasTotal(
+      hectareasController: _HectareasController,
+      librasXHaController: _LibrasXHaController,
+      librasTotalController: _LibrasTotalController,
+    );
+    Dato_Logic.calculateError2(
+      librasTotalController: _LibrasTotalController,
+      error2Controller: _calculateError2Controller,
+    );
+    Dato_Logic.calculateAnimalesM(
+      librasXHaController: _LibrasXHaController,
+      pesoController: _pesoController,
+      animalesMController: _calculateAnimalesMController,
+    );
+  }
+
+  void _loadPiscinas() async {
+    final data = await Dato_Logic.fetchDataFromRef(_camanovilloRef);
+    setState(() {
+      _hectareasPiscinas = data.map((row) {
+        String hect = row['Hectareas'].toString();
+        String pisc =
+            row['Piscinas'].toString().replaceAll(RegExp(r'[^\d.]'), '');
+        return 'Hect: $hect - Pisc: $pisc';
+      }).toList();
+    });
+  }
+
+  void _onCalculate() {
     // Validar selección de terreno
     if (selectedTerreno == null) {
       _showSnackBar('Por favor, seleccione la Hectárea y Piscina.');
-      return;
-    }
-
-    // Validar selección de piscina
-    if (_getHectareas() == null) {
-      _showSnackBar('Debe seleccionar una opción en el ComboBox de Terreno.');
       return;
     }
 
@@ -175,23 +217,16 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
       'Consumo': consumo,
       'Entero': peso.toInt(),
     };
-
     CAMANOVILLOData.add(newData);
     _calculateAndUpload(peso, consumo);
-    _calculateKgXHa();
-    _calculateLibrasXHa();
-    _calculateLibrasTotal();
-    _calculateError2();
-    _calculateAnimalesM();
-
+    _calculateFunction();
     setState(() {
-      _showResults_CAMANOVILLO = !_showResults_CAMANOVILLO;
+      _showResults = !_showResults;
     });
-
     Future.delayed(const Duration(milliseconds: 500), () {
-      if (_showResults_CAMANOVILLO) {
-        _scrollController_CAMANOVILLO.animateTo(
-          _scrollController_CAMANOVILLO.position.maxScrollExtent,
+      if (_showResults) {
+        _scrollController_.animateTo(
+          _scrollController_.position.maxScrollExtent,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
@@ -224,7 +259,11 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
     final entero = totalPeso.toInt();
 
     // Obtiene el rendimiento basado en el peso total
-    final rendimiento = _getRendimiento(entero);
+    final rendimiento = Dato_Logic.getRendimiento(
+      entero: entero,
+      rendimientoData: rendimientoData,
+      rendimientoController: _RendimientoController,
+    );
 
     // Calcula kgXHa, librasXHa, librasTotal, error2, y animalesM
     final kgXHa =
@@ -253,11 +292,11 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
       'Error2': error2,
       'LibrasXHA': librasXHa,
       'AnimalesM': animalesM,
-      'Finca': 'CAMANOVILLO',
+      'Finca': _selectedFinca,
     };
 
     // Sube los datos calculados a la base de datos de Firebase
-    final resultRef = FirebaseDatabase.instance
+    final DatabaseReference resultRef = FirebaseDatabase.instance
         .ref('${EnvLoader.get('RESULT_DATO_BASE')}/$_selectedFinca');
     resultRef.push().set(newData);
 
@@ -267,392 +306,8 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
     });
   }
 
-  int _getRendimiento(int entero) {
-    final matchingElement = rendimientoData.firstWhere(
-      (element) =>
-          element.containsKey('Gramos') &&
-          element['Gramos'] != null &&
-          int.tryParse(element['Gramos'].toString()) == entero,
-      orElse: () => <String,
-          dynamic>{}, // Devuelve un Map vacío como valor predeterminado
-    );
-
-    if (matchingElement.isEmpty) {
-      return 0; // o cualquier valor predeterminado apropiado
-    }
-
-    final rendimiento =
-        int.tryParse(matchingElement['Rendimiento'].toString()) ?? 0;
-    _RendimientoController.text = rendimiento.toString();
-    return rendimiento;
-  }
-
-  // coach mark
-  final GlobalKey _SelectPiscDATO = GlobalKey();
-  final GlobalKey _BeforeDATO = GlobalKey();
-  final GlobalKey _AfterDATO = GlobalKey();
-  final GlobalKey _ConsumoDATO = GlobalKey();
-  final GlobalKey _PesoAdmin = GlobalKey();
-  final GlobalKey _calcularbuttonDATO = GlobalKey();
-  final GlobalKey _resetTutorialDATO = GlobalKey();
-  TutorialCoachMark? tutorialCoachMarkDATO;
-
-  @override
-  void dispose() {
-    _HectareasController.dispose();
-    _piscinasController.dispose();
-    _pesoController.dispose();
-    _consumoController.dispose();
-    _timerDATO?.cancel(); // Cancela el timer si está activo
-    tutorialCoachMarkDATO?.finish();
-    _RendimientoController.dispose();
-    super.dispose();
-  }
-
-  String get tutorial_mostrado_CAMANOVILLO_DATO =>
-      "tutorial_mostrado_CAMANOVILLO_DATO";
-
-  // Verifica si el tutorial ya fue mostrado
-  Future<bool> _shouldShowTutorialDATO() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(tutorial_mostrado_CAMANOVILLO_DATO) ??
-        true; // Si no existe, se muestra
-  }
-
-// Guarda que el tutorial ya se mostró
-  Future<void> _setTutorialShownDATO() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(tutorial_mostrado_CAMANOVILLO_DATO, false);
-  }
-
-// Restablece el tutorial desde ajustes si el usuario lo quiere repetir
-  Future<void> resetTutorialDATO() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(tutorial_mostrado_CAMANOVILLO_DATO, true);
-  }
-
-  // Muestra el tutorial solo si no se ha mostrado antes
-  void showTutorialDATO() async {
-    if (await _shouldShowTutorialDATO()) {
-      tutorialCoachMarkDATO = TutorialCoachMark(
-        targets: _initTargetsDATO,
-        colorShadow: Colors.black87,
-        paddingFocus: 0.01,
-        showSkipInLastTarget: true,
-        initialFocus: 0,
-        useSafeArea: true,
-        textSkip: "Saltar",
-        focusAnimationDuration: const Duration(milliseconds: 500),
-        unFocusAnimationDuration: const Duration(milliseconds: 500),
-        pulseAnimationDuration: const Duration(milliseconds: 500),
-        pulseEnable: true,
-        onFinish: () {
-          _setTutorialShownDATO(); // Guarda que ya se mostró
-        },
-        onClickTarget: (target) {
-          print("Clicked on target: ${target.identify}");
-        },
-        onClickOverlay: (target) {
-          print("Overlay clicked");
-        },
-      )..show(context: context);
-    }
-  }
-
-  final List<TargetFocus> _initTargetsDATO = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "SelectPiscina",
-        keyTarget: _SelectPiscDATO,
-        alignSkip: Alignment.bottomRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Configura tu terreno",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Selecciona las hectáreas y la cantidad de alimento en gramos para obtener el mejor rendimiento.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "Before",
-        keyTarget: _BeforeDATO,
-        alignSkip: Alignment.bottomRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Retroceder Pagina",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Da click para retroceder a la página anterior. "
-                    "Si no deseas retroceder, puedes omitir este paso.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "After",
-        keyTarget: _AfterDATO,
-        alignSkip: Alignment.bottomRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Avanzar Pagina",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Da click para avanzar a la página siguiente. "
-                    "Si no deseas avanzar, puedes omitir este paso.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "Peso",
-        keyTarget: _PesoAdmin,
-        alignSkip: Alignment.bottomRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Peso del camarón",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Indica el peso promedio del camarón en gramos para afinar los cálculos.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "Consumo",
-        keyTarget: _ConsumoDATO,
-        alignSkip: Alignment.bottomRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Consumo diario",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Ingresa la cantidad de alimento consumido en gramos para realizar un cálculo preciso.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "Calcular",
-        keyTarget: _calcularbuttonDATO,
-        alignSkip: Alignment.topCenter,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  "¡Hora de calcular!",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Presiona el botón para obtener los resultados y optimizar tu producción.",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    _initTargetsDATO.add(
-      TargetFocus(
-        identify: "ResetTutorialDATO",
-        keyTarget: _resetTutorialDATO,
-        alignSkip: Alignment.topRight,
-        radius: 20,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 30),
-                Text(
-                  "Reinicia el tutorial",
-                  style: TextStyle(
-                    color: Color(0xfff3ece7),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    "Si deseas volver a ver el tutorial, presiona este botón.",
-                    style: TextStyle(
-                      color: Color(0xfff3ece7),
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    // Asegurar que el tutorial se inicie después de que el widget esté construido
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _timerDATO = Timer(const Duration(seconds: 1), () {
-        if (mounted) {
-          showTutorialDATO();
-        }
-      });
-    });
-    _loadHectareasPiscinas(_selectedFinca);
-    _fetchData();
-    _pesoController.addListener(() {
-      setState(() {
-        selectedGramos = _pesoController.text;
-      });
-    });
-    _addListeners();
-    final entero = double.tryParse(_pesoController.text)?.toInt() ?? 0;
-    _getRendimiento(entero);
-    // Establecer un valor por defecto para `selectedHectareas` si lo deseas
-    if (CAMANOVILLOData.isNotEmpty) {
-      final defaultHectareas =
-          '${CAMANOVILLOData[0]['Hectareas']}_${CAMANOVILLOData[0]['Piscinas']}';
-      selectedHectareas = defaultHectareas; // Establecer el valor por defecto
-    }
-    _HectareasController.addListener(() {
-      setState(() {
-        selectedHectareas = _HectareasController.text;
-      });
-    });
-  }
-
   void _loadHectareasPiscinas(String finca) async {
-    final snapshot = await _CAMANOVILLORef.get();
+    final snapshot = await _camanovilloRef.get();
     if (snapshot.exists) {
       List<dynamic> rows = List<dynamic>.from(snapshot.value as List);
 
@@ -669,388 +324,124 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    _initTargetsDATO.addAll(buildTutorialTargetsDATO(
+      selectPiscinaKey: _SelectPiscDATO,
+      beforeKey: _BeforeDATO,
+      afterKey: _AfterDATO,
+      pesoKey: _PesoAdmin,
+      consumoKey: _ConsumoDATO,
+      calcularKey: _calcularbuttonDATO,
+      resetTutorialKey: _resetTutorialDATO,
+    ));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TutorialHelper.showTutorialIfNeeded(
+        context: context,
+        targets: _initTargetsDATO,
+        tutorialKeyFinca: _selectedFinca,
+      );
+    });
+    _fetchData();
+    _loadPiscinas();
+    _loadHectareasPiscinas(_selectedFinca);
+    _addListeners();
+    // Establecer un valor por defecto para `selectedHectareas` si lo deseas
+    if (CAMANOVILLOData.isNotEmpty) {
+      final defaultHectareas =
+          '${CAMANOVILLOData[0]['Hectareas']}_${CAMANOVILLOData[0]['Piscinas']}';
+      selectedHectareas = defaultHectareas; // Establecer el valor por defecto
+    }
+    _HectareasController.addListener(() {
+      setState(() {
+        selectedHectareas = _HectareasController.text;
+      });
+    });
+
+    _RendimientoController.addListener(() {
+      setState(() {
+        _calculateFunction();
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final entero = double.tryParse(_pesoController.text)?.toInt() ?? 0;
     _gramosController.text = entero != null ? entero.toString() : 'N/A';
-    final rendimiento = _getRendimiento(entero);
+
     return Scaffold(
       backgroundColor: const Color(0xfff3ece7),
       body: SingleChildScrollView(
-        controller: _scrollController_CAMANOVILLO,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: _buildHectSelect(
-                    _hectareasPiscinas,
-                    '${_HectareasController.text} - ${_piscinasController.text}',
-                    'Seleccione Hectáreas y Piscinas',
-                    'hectareas'),
+        controller: _scrollController_,
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            HectSelectWidget(
+              items: _hectareasPiscinas,
+              currentPage: _currentPage,
+              itemsPerPage: _itemsPerPage,
+              title: 'Seleccione Hectáreas y Piscinas',
+              selectedHectarea: _HectareasController.text,
+              selectedPiscina: _piscinasController.text,
+              onNextPage: _nextPage,
+              onPreviousPage: _previousPage,
+              beforeKey: _BeforeDATO,
+              afterKey: _AfterDATO,
+              labelKey: _SelectPiscDATO,
+              typeBackground: _selectedFinca,
+              onSelect: (tipo, item, isSelected) {
+                final hect =
+                    item.split(" - ")[0].replaceAll("Hect: ", "").trim();
+                final pisc =
+                    item.split(" - ")[1].replaceAll("Pisc: ", "").trim();
+
+                _onSelect(pisc, hect);
+
+                // 👇 Aquí actualizamos selectedTerreno con los datos del terreno correspondiente
+                final terreno = CAMANOVILLOData.firstWhere(
+                  (element) =>
+                      element['Piscinas'].toString().contains(pisc) &&
+                      element['Hectareas'].toString().contains(hect),
+                  orElse: () => {},
+                );
+
+                setState(() {
+                  selectedTerreno = terreno.isNotEmpty ? terreno : null;
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+            InputCard(
+              pesoController: _pesoController,
+              consumoController: _consumoController,
+              pesoKey: _PesoAdmin,
+              consumoKey: _ConsumoDATO,
+              typeFinca: _selectedFinca,
+            ),
+            const SizedBox(height: 20),
+            CalculateButton(
+              onPressed: _onCalculate,
+              buttonKey: _calcularbuttonDATO,
+            ),
+            const SizedBox(height: 20),
+            if (_showResults)
+              ResultCard(
+                hectareasController: _HectareasController,
+                piscinasController: _piscinasController,
+                gramosController: _gramosController,
+                rendimientoController: _RendimientoController,
+                kgXHaController: _kgXHaController,
+                librasTotalController: _LibrasTotalController,
+                error2Controller: _calculateError2Controller,
+                librasXHaController: _LibrasXHaController,
+                animalesMController: _calculateAnimalesMController,
+                showResults: _showResults,
+                typeFinca: _selectedFinca,
               ),
-              const SizedBox(height: 10),
-              const Center(
-                child: Text(
-                  "Ingresar los datos:",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Card(
-                  elevation: 5,
-                  margin: const EdgeInsets.all(10),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(40.0),
-                      bottomLeft: Radius.circular(40.0),
-                    ),
-                  ),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color.fromARGB(255, 241, 238, 235),
-                          Color.fromARGB(255, 241, 238, 235),
-                        ],
-                        begin: Alignment.topRight,
-                        end: Alignment.bottomLeft,
-                      ),
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(40.0),
-                        bottomLeft: Radius.circular(40.0),
-                      ), // Opcional: bordes redondeados
-                      boxShadow: [
-                        BoxShadow(
-                          offset: Offset(-10, 10),
-                          color: Color.fromARGB(80, 0, 0, 0),
-                          blurRadius: 10,
-                        ),
-                        BoxShadow(
-                            offset: Offset(10, -10),
-                            color: Color.fromARGB(147, 202, 202, 202),
-                            blurRadius: 10),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Table(
-                        border: const TableBorder(
-                          horizontalInside:
-                              BorderSide(color: Colors.transparent),
-                          verticalInside: BorderSide(color: Colors.transparent),
-                        ),
-                        columnWidths: const {
-                          0: FixedColumnWidth(120.0),
-                          1: FlexColumnWidth(),
-                        },
-                        children: [
-                          TableRow(
-                            children: [
-                              const TableCell(
-                                child: Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'Peso:',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w800),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              TableCell(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        key: _PesoAdmin,
-                                        child: TextField(
-                                          controller: _pesoController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Ingrese el Peso...',
-                                            enabledBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                            focusedBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                          ),
-                                          style: const TextStyle(
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      const Tooltip(
-                                        message: 'Peso en gramos (g)',
-                                        child: Icon(
-                                          Icons.info,
-                                          color:
-                                              Color.fromARGB(255, 176, 74, 11),
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          TableRow(
-                            children: [
-                              const TableCell(
-                                child: Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'Consumo:',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              TableCell(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        key: _ConsumoDATO,
-                                        child: TextField(
-                                          controller: _consumoController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Ingrese el Consumo...',
-                                            enabledBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                            focusedBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      const Tooltip(
-                                        message: 'Consumo en gramos (g)',
-                                        child: Icon(
-                                          Icons.info,
-                                          color:
-                                              Color.fromARGB(255, 176, 74, 11),
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color.fromARGB(255, 176, 74, 11),
-                        Color.fromARGB(255, 126, 53, 0),
-                      ],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    boxShadow: [
-                      BoxShadow(
-                        offset: Offset(-5, 5),
-                        color: Color.fromARGB(80, 0, 0, 0),
-                        blurRadius: 10,
-                      ),
-                      BoxShadow(
-                        offset: Offset(5, -5),
-                        color: Color.fromARGB(150, 255, 255, 255),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    child: ElevatedButton(
-                      key: _calcularbuttonDATO,
-                      onPressed: _addData,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16.0,
-                            horizontal: 24.0), // Tamaño del botón
-                      ),
-                      child: const Text(
-                        'Calcular',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xfff3ece7),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: _showResults_CAMANOVILLO
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 10),
-                            const Text(
-                              'Resultados:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 22,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Card(
-                                elevation: 8,
-                                margin: const EdgeInsets.all(10),
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(20.0),
-                                  ),
-                                ),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Color.fromARGB(255, 241, 238, 235),
-                                        Color.fromARGB(255, 241, 238, 235),
-                                      ],
-                                      begin: Alignment.topRight,
-                                      end: Alignment.bottomLeft,
-                                    ),
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(20.0),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        offset: Offset(10, 10),
-                                        color: Color.fromARGB(80, 0, 0, 0),
-                                        blurRadius: 10,
-                                      ),
-                                      BoxShadow(
-                                          offset: Offset(-10, -10),
-                                          color: Color.fromARGB(
-                                              147, 202, 202, 202),
-                                          blurRadius: 10),
-                                    ],
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Table(
-                                      border: const TableBorder(
-                                        horizontalInside: BorderSide(
-                                            color: Colors.transparent),
-                                        verticalInside: BorderSide(
-                                            color: Colors.transparent),
-                                      ),
-                                      columnWidths: const {
-                                        0: FixedColumnWidth(120.0),
-                                        1: FlexColumnWidth(),
-                                      },
-                                      children: [
-                                        CustomTableRow(
-                                            label: 'Hectareas',
-                                            controller: _HectareasController,
-                                            unit: 'ha'),
-                                        CustomTableRow(
-                                            label: 'Piscinas',
-                                            controller: _piscinasController,
-                                            unit: 'Pisc'),
-                                        CustomTableRow(
-                                            label: 'Gramos',
-                                            controller: _gramosController,
-                                            unit: 'g'),
-                                        CustomTableRow(
-                                            label: 'Rendimiento',
-                                            controller: _RendimientoController,
-                                            unit: 'R'),
-                                        CustomTableRow(
-                                            label: 'KGXHA',
-                                            controller: _kgXHaController,
-                                            unit: 'kg/ha'),
-                                        CustomTableRow(
-                                          label: 'LibrasTotal',
-                                          controller: _LibrasTotalController,
-                                          unit: 'lb',
-                                        ),
-                                        CustomTableRow(
-                                          label: 'Error 2%',
-                                          controller:
-                                              _calculateError2Controller,
-                                          unit: '%',
-                                        ),
-                                        CustomTableRow(
-                                          label: 'LibrasXHA',
-                                          controller: _LibrasXHaController,
-                                          unit: 'lb/ha',
-                                        ),
-                                        CustomTableRow(
-                                          label: 'AnimalesM',
-                                          controller:
-                                              _calculateAnimalesMController,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
       floatingActionButton: Tooltip(
@@ -1082,7 +473,9 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
         ),
         child: FloatingActionButton(
           onPressed: () async {
-            await resetTutorialDATO();
+            await TutorialHelper.resetTutorial(
+              _selectedFinca,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("Tutorial restablecido. Para verlo,"
@@ -1102,68 +495,6 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
     );
   }
 
-  String _getHectareas() {
-    // Extrae solo la parte numérica de hectáreas de "Hectareas_Piscinas"
-    return selectedHectareas?.split('_')[0] ?? '1';
-  }
-
-  String _calculateKgXHa() {
-    final consumo =
-        double.tryParse(_consumoController.text.replaceAll(',', '.'));
-    final hectareas =
-        double.tryParse(_HectareasController.text.replaceAll(',', '.'));
-    final result = (consumo != null && hectareas != null)
-        ? (consumo / hectareas).toStringAsFixed(2)
-        : 'N/A';
-    _kgXHaController.text = result;
-
-    return result;
-  }
-
-  String _calculateLibrasXHa() {
-    final kgXHa = double.tryParse(_calculateKgXHa().replaceAll(',', '.'));
-    final rendimiento = double.tryParse(
-        _getRendimiento(double.tryParse(_pesoController.text)?.toInt() ?? 0)
-            .toString());
-    final result = (kgXHa != null && rendimiento != null)
-        ? (kgXHa * (rendimiento / 100) * 100).toStringAsFixed(2)
-        : 'N/A';
-    _LibrasXHaController.text = result;
-    return result;
-  }
-
-  String _calculateLibrasTotal() {
-    final hectareas =
-        double.tryParse(_HectareasController.text.replaceAll(',', '.'));
-    final librasXHa =
-        double.tryParse(_calculateLibrasXHa().replaceAll(',', '.'));
-    final result = (hectareas != null && librasXHa != null)
-        ? (hectareas * librasXHa).toStringAsFixed(2)
-        : 'N/A';
-    _LibrasTotalController.text = result;
-    return result;
-  }
-
-  String _calculateError2() {
-    final librasTotal =
-        double.tryParse(_calculateLibrasTotal().replaceAll(',', '.'));
-    final result =
-        (librasTotal != null) ? (librasTotal * 0.98).toStringAsFixed(2) : 'N/A';
-    _calculateError2Controller.text = result;
-    return result;
-  }
-
-  String _calculateAnimalesM() {
-    final librasXHa =
-        double.tryParse(_calculateLibrasXHa().replaceAll(',', '.'));
-    final peso = double.tryParse(_pesoController.text.replaceAll(',', '.'));
-    final result = (librasXHa != null && peso != null)
-        ? (((librasXHa * 454) / peso) / 10000).toStringAsFixed(2)
-        : 'N/A';
-    _calculateAnimalesMController.text = result;
-    return result;
-  }
-
   void _nextPage() {
     setState(() {
       if ((_currentPage + 1) * _itemsPerPage < _hectareasPiscinas.length) {
@@ -1180,180 +511,16 @@ class _DatoCAMANOVILLO_ScreenState extends State<DatoCAMANOVILLO_Screen> {
     });
   }
 
-  Widget _buildHectSelect(List<String> itemsHect, String selectedItemHect,
-      String titleHect, String categoryHect) {
-    int startIndex = _currentPage * _itemsPerPage;
-    int endIndex = (_currentPage + 1) * _itemsPerPage;
-
-    // Limita el rango de elementos para mostrar solo 8 por página
-    List<String> pagedItems = itemsHect.sublist(
-        startIndex, endIndex > itemsHect.length ? itemsHect.length : endIndex);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          key: _SelectPiscDATO,
-          titleHect,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Wrap(
-          spacing: 10.0,
-          children: pagedItems.map((itemHect) {
-            // 🔹 Usamos `pagedItems` aquí
-            final isSelectedHect = _HectareasController.text.trim() ==
-                    itemHect.split(" - ")[0].replaceAll("Hect: ", "").trim() &&
-                _piscinasController.text.trim() ==
-                    itemHect.split(" - ")[1].replaceAll("Pisc: ", "").trim();
-            return FilterChip(
-              shadowColor: Colors.black,
-              selectedShadowColor: Colors.black,
-              elevation: 5,
-              label: Text(
-                itemHect,
-                style: TextStyle(
-                  color: isSelectedHect ? Colors.white : Colors.black,
-                ),
-              ),
-              selected: isSelectedHect,
-              onSelected: (isSelected) {
-                _onSelect(categoryHect, itemHect, isSelected);
-              },
-              selectedColor: const Color.fromARGB(255, 126, 53, 0),
-              backgroundColor: const Color.fromARGB(255, 241, 238, 235),
-              checkmarkColor: Colors.white,
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-
-        // Controles de paginación
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              key: _BeforeDATO,
-              onPressed: _currentPage > 0 ? _previousPage : null,
-              style: ButtonStyle(
-                  backgroundColor: _currentPage > 0
-                      ? WidgetStateProperty.all<Color>(
-                          const Color.fromARGB(255, 126, 53, 0))
-                      : null),
-              child: const Text(
-                "Atrás",
-                style: TextStyle(
-                  color: Color(0xfff3ece7),
-                ),
-              ),
-            ),
-            Text(
-              "Pg. ${_currentPage + 1}",
-              style: const TextStyle(
-                fontSize: 16,
-              ),
-            ),
-            ElevatedButton(
-              key: _AfterDATO,
-              onPressed: (_currentPage + 1) * _itemsPerPage < itemsHect.length
-                  ? _nextPage
-                  : null,
-              style: ButtonStyle(
-                  backgroundColor:
-                      (_currentPage + 1) * _itemsPerPage < itemsHect.length
-                          ? WidgetStateProperty.all<Color>(
-                              const Color.fromARGB(255, 126, 53, 0))
-                          : null),
-              child: const Text(
-                "Siguiente",
-                style: TextStyle(
-                  color: Color(0xfff3ece7),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _onSelect(String category, String item, bool isSelected) {
+  void _onSelect(String piscina, String hectarea) {
     setState(() {
-      if (category == "finca") {
-        _selectedFinca = isSelected ? item : _selectedFinca;
-        _loadHectareasPiscinas(_selectedFinca);
-      } else if (category == "hectareas") {
-        List<String> parts = item.split(" - ");
-        if (parts.length == 2) {
-          _HectareasController.text = parts[0].replaceAll("Hect: ", "").trim();
-          _piscinasController.text =
-              parts[1].replaceAll(RegExp(r'[^0-9.]'), '');
-          selectedTerreno = {
-            "Hectareas": _HectareasController.text,
-            "Piscinas": _piscinasController.text,
-          };
-        }
-      }
+      selectedPiscinas = piscina;
+      selectedHectareas = hectarea;
+      _piscinasController.text = piscina;
+      _HectareasController.text = hectarea;
+      selectedTerreno = {
+        'Piscinas': piscina,
+        'Hectareas': hectarea,
+      };
     });
   }
-}
-
-class CustomTableRow extends TableRow {
-  CustomTableRow({
-    required String label,
-    required TextEditingController controller,
-    String? unit,
-  }) : super(
-          children: [
-            TableCell(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-            TableCell(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: '$label...',
-                        enabledBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Color.fromARGB(255, 126, 53, 0),
-                          ),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Color.fromARGB(255, 126, 53, 0),
-                          ),
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.black87),
-                    ),
-                  ),
-                  if (unit != null) // Solo muestra la unidad si está definida
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Text(
-                        unit,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        );
 }
