@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sufaweb/Presentation/views/FINCAS/Utils/getBackgroundColor.dart';
+import 'package:sufaweb/Presentation/Utils/getBackgroundColor.dart';
 
 class HectChip extends StatelessWidget {
   final String item;

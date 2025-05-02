@@ -19,8 +19,8 @@ List<Color> getGradientColors(String typeFinca) {
       ];
     case 'GROVITAL':
       return [
-        const Color(0xffe2dfd7),
-        const Color(0xffe2dfd7),
+        const Color.fromARGB(255, 196, 184, 184),
+        const Color.fromARGB(255, 196, 184, 184),
       ];
     case 'SUFAAZA':
       return [

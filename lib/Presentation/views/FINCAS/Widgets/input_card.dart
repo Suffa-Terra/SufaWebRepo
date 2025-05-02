@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sufaweb/Presentation/views/FINCAS/Utils/gradient_colors.dart';
+import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
 
 class InputCard extends StatelessWidget {
   final TextEditingController pesoController;

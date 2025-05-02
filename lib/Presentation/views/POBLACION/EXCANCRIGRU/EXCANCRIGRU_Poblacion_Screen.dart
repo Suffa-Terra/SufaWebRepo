@@ -1,11 +1,13 @@
 // ignore_for_file: non_constant_identifier_names, unused_local_variable
 
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sufaweb/Presentation/Utils/getBackgroundColor.dart';
+import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
 import 'package:sufaweb/env_loader.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
@@ -21,8 +23,10 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     extends State<Poblacion_EXCANCRIGRU_Screen> {
   final DatabaseReference _EXCANCRIGRURef =
       FirebaseDatabase.instance.ref(EnvLoader.get('EXCANCRIGRU_ROWS')!);
+
   final DatabaseReference _EXCANCRIGRUBaseRef =
       FirebaseDatabase.instance.ref(EnvLoader.get('EXCANCRIGRU_')!);
+
   List<Map<String, dynamic>> terrenos = [];
   Map<String, dynamic>? selectedTerreno;
   TextEditingController hectareasController = TextEditingController();
@@ -52,8 +56,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   final int _itemsPerPage = 6;
   Timer? _timerPOBLACIONEXCANCRIGRU;
 
-// Define los controladores adicionales en tu clase de widget
-
+  // Define los controladores adicionales en tu clase de widget
   TextEditingController camaronesXLancesController = TextEditingController();
   TextEditingController diametroAtarrayaController = TextEditingController();
   TextEditingController batimentriaController = TextEditingController();
@@ -66,6 +69,16 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   TextEditingController sobrevivenciaController = TextEditingController();
   TextEditingController pesoDeCamaronController = TextEditingController();
   TextEditingController librasEstimadasController = TextEditingController();
+
+  final NumberFormat numberFormatter = NumberFormat("#,##0.##", "en_US");
+
+  void _formaterPoblation() {
+    final parsed =
+        double.tryParse(cantidadSiembraController.text.replaceAll(',', ''));
+    if (parsed != null) {
+      cantidadSiembraController.text = numberFormatter.format(parsed);
+    }
+  }
 
   void _fetchTerrenos() async {
     try {
@@ -105,12 +118,16 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   }
 
   void _updateCalculatedFields() {
-    double hectareas = double.tryParse(hectareasController.text) ?? 0.0;
+    double hectareas =
+        double.tryParse(hectareasController.text.replaceAll(',', '')) ?? 0.0;
     double cantidadSiembra =
-        double.tryParse(cantidadSiembraController.text) ?? 0.0;
+        double.tryParse(cantidadSiembraController.text.replaceAll(',', '')) ??
+            0.0;
+    numberFormatter.format(cantidadSiembra);
+
     double densidadSiembra =
         hectareas != 0.0 ? cantidadSiembra / hectareas : 0.0;
-    densidadSiembraController.text = densidadSiembra.toStringAsFixed(1);
+    densidadSiembraController.text = numberFormatter.format(densidadSiembra);
   }
 
   void _updateTableRows() {
@@ -223,76 +240,83 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   void _updateCamaronesSum() {}
 
   void _updateBactimetriaSum() {
+    // Función auxiliar para limpiar comas y convertir a número
+    double getCleanDouble(TextEditingController controller) {
+      return double.tryParse(controller.text.replaceAll(',', '')) ?? 0.0;
+    }
+
+    int getCleanInt(TextEditingController controller) {
+      return int.tryParse(controller.text.replaceAll(',', '')) ?? 0;
+    }
+
     // Promedio Camarones
-    int sumCam =
-        camaronesControllers.fold(0, (previousValuesumCam, controllersumCam) {
-      int valuesumCam = int.tryParse(controllersumCam.text) ?? 0;
-      return previousValuesumCam + valuesumCam;
+    int sumCam = camaronesControllers.fold(0, (prev, ctrl) {
+      return prev + getCleanInt(ctrl);
     });
-    resultCamaronesController.text = sumCam.toString();
+    resultCamaronesController.text = numberFormatter.format(sumCam);
 
     // Camarones X Lance
-    int numberOfLancessumCam = int.tryParse(lancesController.text) ?? 1;
+    int numberOfLancesSumCam = getCleanInt(lancesController);
     double CamaXLances =
-        numberOfLancessumCam > 0 ? sumCam / numberOfLancessumCam : 0.0;
-    camaronesXLancesController.text = CamaXLances.toStringAsFixed(1);
+        numberOfLancesSumCam > 0 ? sumCam / numberOfLancesSumCam : 0.0;
+    camaronesXLancesController.text = numberFormatter.format(CamaXLances);
 
-    // Promedio Bactimetria
-    int sum = bactimetriaControllers.fold(0, (previousValue, controller) {
-      int value = int.tryParse(controller.text) ?? 0;
-      return previousValue + value;
+    // Promedio Bactimetría
+    int sumBact = bactimetriaControllers.fold(0, (prev, ctrl) {
+      return prev + getCleanInt(ctrl);
     });
-    int numberOfLances = int.tryParse(lancesController.text) ?? 1;
-    double result = numberOfLances > 0 ? sum / numberOfLances : 0.0;
-    resultBactimetriaController.text = result.toStringAsFixed(1);
+    int numberOfLances = getCleanInt(lancesController);
+    double result = numberOfLances > 0 ? sumBact / numberOfLances : 0.0;
+    resultBactimetriaController.text = numberFormatter.format(result);
 
-    // Diametro de Atarraya
-    int DiAtarraya = int.tryParse(diametroAtarrayaController.text) ??
-        1; // Cambiado a 1 para evitar división por cero
+    // Diámetro Atarraya
+    int DiAtarraya = getCleanInt(diametroAtarrayaController);
+    if (DiAtarraya == 0) DiAtarraya = 1;
 
-    // Calculo de la Batimetria
-    double bacttimatriaResul = result / 100;
-    batimentriaController.text = bacttimatriaResul.toStringAsFixed(1);
+    // Batimetría
+    double batimetriaResul = result / 100;
+    batimentriaController.text = numberFormatter.format(batimetriaResul);
 
-    // Calculo de la CAM X METRO SIN AGUA
+    // CAM X METRO SIN AGUA
     double camaronxmetroResult =
         DiAtarraya > 0 ? CamaXLances / DiAtarraya : 0.0;
     nCamaronesXMetroSinAguaController.text =
-        camaronxmetroResult.toStringAsFixed(1);
+        numberFormatter.format(camaronxmetroResult);
 
-    // Calculo de la CAM X METRO CON AGUA
-    double camaraonxConAguaResult = camaronxmetroResult * bacttimatriaResul;
+    // CAM X METRO CON AGUA
+    double camaronxConAguaResult = camaronxmetroResult * batimetriaResul;
     nCamaronesXMetroConAguaController.text =
-        camaraonxConAguaResult.toStringAsFixed(2);
+        numberFormatter.format(camaronxConAguaResult);
 
-    // Calculo de la Cam promedio
-    double CAMpromedio = (camaronxmetroResult + camaraonxConAguaResult) / 2;
-    camPromediosController.text = CAMpromedio.toStringAsFixed(2);
+    // CAM Promedio
+    double CAMpromedio = (camaronxmetroResult + camaronxConAguaResult) / 2;
+    camPromediosController.text = numberFormatter.format(CAMpromedio);
 
-    // Calculo de la Población Actual
-    double hectareas = double.tryParse(hectareasController.text) ?? 0.0;
+    // Población Actual
+    double hectareas = getCleanDouble(hectareasController);
     double PoblacionActual = hectareas > 0 && CAMpromedio > 0
         ? 10000 * hectareas * CAMpromedio
         : 0.0;
-    poblacionActualController.text = PoblacionActual.toStringAsFixed(2);
+    poblacionActualController.text = numberFormatter.format(PoblacionActual);
 
-    // Calculo de la Siembra
-    double cantidadSiembra =
-        double.tryParse(cantidadSiembraController.text) ?? 0.0;
-    double densidadSiembra =
-        hectareas != 0.0 ? cantidadSiembra / hectareas : 0.0;
-    double resultSobreVivencia = PoblacionActual * 100 / cantidadSiembra;
-    sobrevivenciaController.text = resultSobreVivencia.toStringAsFixed(2);
+    // Sobrevivencia
+    double cantidadSiembra = getCleanDouble(cantidadSiembraController);
+    double resultSobreVivencia =
+        cantidadSiembra > 0 ? PoblacionActual * 100 / cantidadSiembra : 0.0;
+    sobrevivenciaController.text = numberFormatter.format(resultSobreVivencia);
 
-    // Peso de Camaron
-    double pesoGR = double.tryParse(pesoController.text) ?? 0.0;
-    pesoDeCamaronController.text = pesoGR.toStringAsFixed(1);
+    // Peso de Camarón
+    double pesoGR = getCleanDouble(pesoController);
+    pesoDeCamaronController.text = numberFormatter.format(pesoGR);
 
     // Libras Estimadas
-    double hect = double.tryParse(hectareasController.text) ?? 0.0;
-    double resultLibrasEst =
-        hect > 0 ? hect * 10000 * camaronxmetroResult * pesoGR / 454 : 0.0;
-    librasEstimadasController.text = resultLibrasEst.toStringAsFixed(2);
+    double resultLibrasEst = hectareas > 0
+        ? hectareas * 10000 * camaronxmetroResult * pesoGR / 454
+        : 0.0;
+    librasEstimadasController.text = numberFormatter.format(resultLibrasEst);
+
+    // Aplicar formateo final a Cantidad de Siembra
+    _formaterPoblation();
   }
 
   void _updateTableRowsResult() {
@@ -445,6 +469,9 @@ class _Poblacion_EXCANCRIGRU_Screen_State
       librasEstimadasController,
     ];
 
+    // ÍNDICES de campos que deben llevar formateo numérico con comas:
+    final Set<int> camposConFormato = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
     int numberOfLancesResult = dataLabelsResult.length;
     print(numberOfLancesResult);
 
@@ -472,6 +499,13 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                   child: TextField(
                     keyboardType: TextInputType.number,
                     controller: controllers[i],
+                    inputFormatters: camposConFormato.contains(i)
+                        ? [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d+\.?\d{0,2}')),
+                            NumberFormatter(),
+                          ]
+                        : [],
                     decoration: const InputDecoration(
                       labelText: '',
                       enabledBorder: UnderlineInputBorder(
@@ -504,8 +538,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     // Desplazamiento con animación hacia la tabla
     Future.delayed(const Duration(milliseconds: 300), () {
       if (isTableVisibleResult) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+        _scrollControllerEXCANCRIGRU.animateTo(
+          _scrollControllerEXCANCRIGRU.position.maxScrollExtent,
           duration: const Duration(seconds: 1),
           curve: Curves.easeInOut,
         );
@@ -566,15 +600,15 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     });
   }
 
-  // coach mark
-  final ScrollController _scrollController = ScrollController();
+// coach mark
+  final ScrollController _scrollControllerEXCANCRIGRU = ScrollController();
   final GlobalKey _SelectPiscPOBLACIONEXCANCRIGRU = GlobalKey();
   final GlobalKey _BeforePoblacion = GlobalKey();
   final GlobalKey _AfterPoblacion = GlobalKey();
   final GlobalKey _DiametroAtarrayaPOBLACIONEXCANCRIGRU = GlobalKey();
   final GlobalKey _NumberLancesEXCANCRIGRU = GlobalKey();
   final GlobalKey _ResultFinalPoblacionEXCANCRIGRU = GlobalKey();
-  final GlobalKey _resetTutorialPoblationEXCANCRIGRU = GlobalKey();
+  final GlobalKey _resetTutorialPoblation = GlobalKey();
   TutorialCoachMark? tutorialCoachMarkPOBLACIONEXCANCRIGRU;
 
   @override
@@ -868,7 +902,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     _initTargetsPOBLACIONEXCANCRIGRU.add(
       TargetFocus(
         identify: "Restartutorial",
-        keyTarget: _resetTutorialPoblationEXCANCRIGRU,
+        keyTarget: _resetTutorialPoblation,
         alignSkip: Alignment.topCenter,
         radius: 20,
         shape: ShapeLightFocus.RRect,
@@ -937,10 +971,11 @@ class _Poblacion_EXCANCRIGRU_Screen_State
 
   @override
   Widget build(BuildContext context) {
+    String typeFinca = _selectedFinca;
     return Scaffold(
       backgroundColor: const Color(0xfff3ece7),
       body: SingleChildScrollView(
-        controller: _scrollController,
+        controller: _scrollControllerEXCANCRIGRU,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Center(
@@ -952,7 +987,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                       _hectareasPiscinas,
                       '${hectareasController.text} - ${piscinasController.text}',
                       'Seleccione Hectáreas y Piscinas',
-                      'hectareas'),
+                      'hectareas',
+                      typeFinca),
                 ),
                 if (selectedTerreno != null)
                   Padding(
@@ -965,28 +1001,26 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                         ),
                       ),
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Color(0xffe2d7d4),
-                              Color(0xffe2d7d4),
-                            ],
+                            colors: getGradientColors(typeFinca),
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
                           ),
-                          borderRadius: BorderRadius.all(
+                          borderRadius: const BorderRadius.all(
                             Radius.circular(20),
                           ),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
-                              offset: Offset(-10, 10),
                               color: Color.fromARGB(80, 0, 0, 0),
-                              blurRadius: 10,
+                              offset: Offset(5, 5),
+                              blurRadius: 5,
                             ),
                             BoxShadow(
-                                offset: Offset(10, -10),
-                                color: Color.fromARGB(150, 255, 255, 255),
-                                blurRadius: 10),
+                              color: Color.fromARGB(147, 202, 202, 202),
+                              offset: Offset(-5, -5),
+                              blurRadius: 5,
+                            ),
                           ],
                         ),
                         child: Padding(
@@ -1023,7 +1057,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
-                                          child: CustomTextField(
+                                          child: CustomTextFieldContent(
                                             label: '0.00',
                                             controller: piscinasController,
                                             keyboardType: TextInputType.number,
@@ -1051,7 +1085,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
-                                          child: CustomTextField(
+                                          child: CustomTextFieldContent(
                                             label: '0.00',
                                             controller: hectareasController,
                                             keyboardType: TextInputType.number,
@@ -1078,11 +1112,21 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                                 Color.fromARGB(255, 77, 77, 77),
                                           ),
                                         ),
-                                        CustomTextField(
+                                        CustomTextFieldContent(
                                           label: '0.00',
                                           controller: cantidadSiembraController,
                                           keyboardType: TextInputType.number,
                                           isReadOnly: false,
+                                          onEditingComplete: () {
+                                            final parsed = double.tryParse(
+                                                cantidadSiembraController.text
+                                                    .replaceAll(",", ""));
+                                            if (parsed != null) {
+                                              cantidadSiembraController.text =
+                                                  numberFormatter
+                                                      .format(parsed);
+                                            }
+                                          },
                                         ),
                                       ],
                                     ),
@@ -1104,11 +1148,21 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                                 Color.fromARGB(255, 77, 77, 77),
                                           ),
                                         ),
-                                        CustomTextField(
+                                        CustomTextFieldContent(
                                           label: '0.00',
                                           controller: densidadSiembraController,
                                           keyboardType: TextInputType.number,
                                           isReadOnly: true,
+                                          onEditingComplete: () {
+                                            final parsed = double.tryParse(
+                                                densidadSiembraController.text
+                                                    .replaceAll(",", ""));
+                                            if (parsed != null) {
+                                              densidadSiembraController.text =
+                                                  numberFormatter
+                                                      .format(parsed);
+                                            }
+                                          },
                                         ),
                                       ],
                                     ),
@@ -1130,23 +1184,11 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                                 Color.fromARGB(255, 77, 77, 77),
                                           ),
                                         ),
-                                        TextField(
+                                        CustomTextFieldContent(
+                                          label: ' ',
                                           controller: pesoController,
-                                          decoration: const InputDecoration(
-                                            enabledBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                            focusedBorder: UnderlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 126, 53, 0),
-                                              ),
-                                            ),
-                                          ),
                                           keyboardType: TextInputType.number,
+                                          isReadOnly: false,
                                         ),
                                       ],
                                     ),
@@ -1231,6 +1273,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                       ),
                       const SizedBox(height: 10),
                       CustomTextFieldLances(
+                        typeFinca: typeFinca,
                         label: '0.00',
                         controller: lancesController,
                         keyboardType: TextInputType.number,
@@ -1251,19 +1294,16 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                         ),
                       ),
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Color(0xffe2d7d4),
-                              Color(0xffe2d7d4),
-                            ],
+                            colors: getGradientColors(typeFinca),
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.all(
+                          borderRadius: const BorderRadius.all(
                             Radius.circular(20),
                           ),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               offset: Offset(-10, 10),
                               color: Color.fromARGB(80, 0, 0, 0),
@@ -1313,6 +1353,15 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                     controller: resultCamaronesController,
                                     keyboardType: TextInputType.number,
                                     isReadOnly: true,
+                                    onEditingComplete: () {
+                                      final parsed = double.tryParse(
+                                          resultCamaronesController.text
+                                              .replaceAll(",", ""));
+                                      if (parsed != null) {
+                                        resultCamaronesController.text =
+                                            numberFormatter.format(parsed);
+                                      }
+                                    },
                                   ),
                                 ],
                               ),
@@ -1329,25 +1378,20 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                                       color: Color.fromARGB(255, 77, 77, 77),
                                     ),
                                   ),
-                                  TextField(
+                                  CustomTextField(
+                                    label: '',
                                     controller: resultBactimetriaController,
-                                    decoration: const InputDecoration(
-                                      labelText: '',
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Color.fromARGB(255, 126, 53, 0),
-                                        ),
-                                      ),
-                                      focusedBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Color.fromARGB(255, 126, 53, 0),
-                                        ),
-                                      ),
-                                    ),
                                     keyboardType: TextInputType.number,
-                                    readOnly: true,
+                                    isReadOnly: true,
+                                    onEditingComplete: () {
+                                      final parsed = double.tryParse(
+                                          resultBactimetriaController.text
+                                              .replaceAll(",", ""));
+                                      if (parsed != null) {
+                                        resultBactimetriaController.text =
+                                            numberFormatter.format(parsed);
+                                      }
+                                    },
                                   ),
                                 ],
                               ),
@@ -1378,6 +1422,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                         label: '0.00',
                         keyboardType: TextInputType.number,
                         isReadOnly: false,
+                        typeFinca: typeFinca,
                       ),
                     ],
                   ),
@@ -1443,19 +1488,16 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Color(0xffe2d7d4),
-                            Color(0xffe2d7d4),
-                          ],
+                          colors: getGradientColors(typeFinca),
                           begin: Alignment.bottomLeft,
                           end: Alignment.topRight,
                         ),
-                        borderRadius: BorderRadius.all(
+                        borderRadius: const BorderRadius.all(
                           Radius.circular(10),
                         ),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             offset: Offset(-10, 10),
                             color: Color.fromARGB(80, 0, 0, 0),
@@ -1497,7 +1539,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
         ),
       ),
       floatingActionButton: Tooltip(
-        key: _resetTutorialPoblationEXCANCRIGRU,
+        key: _resetTutorialPoblation,
         message: "Reactivar tutorial",
         height: 50,
         padding: const EdgeInsets.all(8.0),
@@ -1508,8 +1550,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
           gradient: const LinearGradient(colors: <Color>[
-            Color.fromARGB(255, 241, 238, 235),
-            Color.fromARGB(255, 241, 238, 235),
+            Color(0xffe2dfd7),
+            Color(0xffe2dfd7),
           ]),
           boxShadow: const [
             BoxShadow(
@@ -1562,7 +1604,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   }
 
   Widget _buildHectSelect(List<String> itemsHect, String selectedItemHect,
-      String titleHect, String categoryHect) {
+      String titleHect, String categoryHect, String typeFinca) {
     int startIndex = _currentPage * _itemsPerPage;
     int endIndex = (_currentPage + 1) * _itemsPerPage;
 
@@ -1604,7 +1646,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                 _onSelect(categoryHect, itemHect, isSelected);
               },
               selectedColor: const Color.fromARGB(255, 126, 53, 0),
-              backgroundColor: const Color(0xffe2d7d4),
+              backgroundColor: getBackgroundColor(typeFinca),
               checkmarkColor: Colors.white,
             );
           }).toList(),
@@ -1686,15 +1728,13 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     required TextInputType keyboardType,
     required bool isReadOnly,
     IconButton? icon,
+    required String typeFinca,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xffe2d7d4),
-            Color(0xffe2d7d4),
-          ],
+        gradient: LinearGradient(
+          colors: getGradientColors(typeFinca),
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
         ),
@@ -1741,21 +1781,18 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     );
   }
 
-  Widget CustomTextFieldDiametro({
-    required TextEditingController controller,
-    required String label,
-    required TextInputType keyboardType,
-    required bool isReadOnly,
-    IconButton? icon,
-  }) {
+  Widget CustomTextFieldDiametro(
+      {required TextEditingController controller,
+      required String label,
+      required TextInputType keyboardType,
+      required bool isReadOnly,
+      IconButton? icon,
+      required String typeFinca}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xffe2d7d4),
-            Color(0xffe2d7d4),
-          ],
+        gradient: LinearGradient(
+          colors: getGradientColors(typeFinca),
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
         ),
@@ -1803,26 +1840,13 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   }
 }
 
-class PanelItem {
-  final String name;
-  final double hectareas;
-  final double piscinas;
-  bool isExpanded;
-
-  PanelItem({
-    required this.name,
-    required this.hectareas,
-    required this.piscinas,
-    this.isExpanded = false,
-  });
-}
-
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final TextInputType keyboardType;
   final bool isReadOnly;
   final IconButton? icon;
+  final VoidCallback? onEditingComplete;
 
   const CustomTextField({
     super.key,
@@ -1831,6 +1855,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.isReadOnly = true,
     this.icon,
+    this.onEditingComplete,
   });
 
   @override
@@ -1839,6 +1864,53 @@ class CustomTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       readOnly: isReadOnly,
+      onEditingComplete: onEditingComplete,
+      decoration: InputDecoration(
+        icon: icon,
+        enabledBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 126, 53, 0),
+          ),
+        ),
+        focusedBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 126, 53, 0),
+          ),
+        ),
+      ),
+      style: const TextStyle(
+        color: Colors.black87,
+      ),
+    );
+  }
+}
+
+class CustomTextFieldContent extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final TextInputType keyboardType;
+  final bool isReadOnly;
+  final IconButton? icon;
+  final VoidCallback? onEditingComplete;
+
+  const CustomTextFieldContent({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.keyboardType = TextInputType.text,
+    this.isReadOnly = true,
+    this.icon,
+    this.onEditingComplete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      readOnly: isReadOnly,
+      onEditingComplete:
+          onEditingComplete, // Provide a valid callback function here
       decoration: InputDecoration(
         icon: icon,
         enabledBorder: const UnderlineInputBorder(
@@ -1853,6 +1925,40 @@ class CustomTextField extends StatelessWidget {
         ),
       ),
       style: const TextStyle(color: Colors.black87),
+    );
+  }
+}
+
+class PanelItem {
+  final String name;
+  final double hectareas;
+  final double piscinas;
+  bool isExpanded;
+
+  PanelItem({
+    required this.name,
+    required this.hectareas,
+    required this.piscinas,
+    this.isExpanded = false,
+  });
+}
+
+class NumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat("#,##0.##", "en_US");
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String newText = newValue.text.replaceAll(',', '');
+
+    double? value = double.tryParse(newText);
+    if (value == null) return newValue;
+
+    String formatted = _formatter.format(value);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

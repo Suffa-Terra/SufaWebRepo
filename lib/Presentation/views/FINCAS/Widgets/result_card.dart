@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sufaweb/Presentation/views/FINCAS/Utils/gradient_colors.dart';
+import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
 import 'custom_table_row.dart';
 
 class ResultCard extends StatelessWidget {
