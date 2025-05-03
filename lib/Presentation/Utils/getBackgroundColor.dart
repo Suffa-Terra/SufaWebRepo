@@ -12,7 +12,7 @@ Color getBackgroundColor(String typeBackground) {
       return const Color.fromARGB(255, 230, 230, 230);
 
     case 'GROVITAL':
-      return const Color(0xffe2dfd7);
+      return const Color.fromARGB(255, 196, 184, 184);
 
     case 'SUFAAZA':
       return const Color(0xffe2d5d5);

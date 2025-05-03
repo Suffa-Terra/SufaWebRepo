@@ -306,7 +306,9 @@ class _Calculate_CAMANOVILLO_Screen_State
               "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
           return;
         }
-        _edadCultivoController.text = diferenciaDias.toString();
+        int masuno =
+            diferenciaDias + 1; // Ajustar para incluir el día de siembra
+        _edadCultivoController.text = masuno.toString();
       });
       setState(() {
         _calcularCrecimientoActual(); // 🚀 Disparar automáticamente

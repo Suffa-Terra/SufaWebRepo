@@ -3,23 +3,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/CAMANOVILLO/CAMANOVILLO_Calculate.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/CAMANOVILLO/Edit_Calculate_CAMANOVILLO.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/GROVITAL/Edit_Calculate_GROVITAL.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/GROVITAL/GROVITAL_Calculate_Screen.dart';
 import 'package:sufaweb/env_loader.dart';
 
-class Resumen_Calculate_CAMANOVILLO extends StatefulWidget {
-  const Resumen_Calculate_CAMANOVILLO({Key? key}) : super(key: key);
+class Resumen_Calculate_GROVITAL extends StatefulWidget {
+  const Resumen_Calculate_GROVITAL({Key? key}) : super(key: key);
 
   @override
-  _Resumen_Calculate_CAMANOVILLO_State createState() =>
-      _Resumen_Calculate_CAMANOVILLO_State();
+  _Resumen_Calculate_GROVITAL_State createState() =>
+      _Resumen_Calculate_GROVITAL_State();
 }
 
-class _Resumen_Calculate_CAMANOVILLO_State
-    extends State<Resumen_Calculate_CAMANOVILLO> {
+class _Resumen_Calculate_GROVITAL_State
+    extends State<Resumen_Calculate_GROVITAL> {
   static final NumberFormat numberFormatter = NumberFormat("#,##0.##", "en_US");
 
-  final String _selectedFinca = 'CAMANOVILLO';
+  final String _selectedFinca = 'GROVITAL';
   final basePath = EnvLoader.get('RESULT_ALIMENTATION');
 
   DateTime _selectedDate = DateTime.now();
@@ -228,7 +228,7 @@ class _Resumen_Calculate_CAMANOVILLO_State
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) =>
-                                  Edit_Calculate_CAMANOVILLO(id: id),
+                                  Edit_Calculate_GROVITAL(id: id),
                             ),
                           );
                         },
@@ -382,7 +382,7 @@ class _Resumen_Calculate_CAMANOVILLO_State
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => const Calculate_CAMANOVILLO_Screen(),
+                builder: (context) => const Calculate_GROVITAL_Screen(),
               ),
             );
           },

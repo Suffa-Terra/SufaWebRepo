@@ -13,9 +13,14 @@ import 'package:sufaweb/Presentation/admin/Screens/Rendimineto_Config_CAMANOVILL
 import 'package:sufaweb/Presentation/views/CALCULATE/CAMANOVILLO/CAMANOVILLO_Calculate.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/CAMANOVILLO/Resumen_Calculate_CAMANOVILLO.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/EXCANCRIGRU/EXCANCRIGRU_Calculate_Screen.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/EXCANCRIGRU/Resumen_Calculate_EXCANCRIGRU.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/FERTIAGRO/FERTIAGRO_Calculate_Screen.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/FERTIAGRO/Resumen_Calculate_FERTIAGRO.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/GROVITAL/GROVITAL_Calculate_Screen.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/GROVITAL/Resumen_Calculate_GROVITAL.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/SUFAAZA/Resumen_Calculate_SUFAAZA.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/SUFAAZA/SUFAAZA_Calculate_Screen.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/TIERRAVID/Resumen_Calculate_TIERRAVID.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/TIERRAVID/TIERRAVID_Calculate_Screen.dart';
 import 'package:sufaweb/Presentation/views/FINCAS/CAMANOVILLO/DatoCAMANOVILLO/Dato_CAMANOVILLO.dart';
 import 'package:sufaweb/Presentation/views/FINCAS/CAMANOVILLO/GraficasCAMANOVILLO/GRAFICAS_CAMANOVILLO_Screen.dart';
@@ -214,6 +219,8 @@ class _AdminScreenState extends State<AdminScreen> {
         return const GRAFICAS_EXCANCRIGRU_Screen();
       case 'Calculate_EXCANCRIGRU_Screen':
         return const Calculate_EXCANCRIGRU_Screen();
+      case 'Resumen_EXCANCRIGRU_Screen':
+        return const Resumen_Calculate_EXCANCRIGRU();
 
       // FERTIAGRO Screens
       case 'Dato_FERTIAGRO_Screen':
@@ -224,6 +231,8 @@ class _AdminScreenState extends State<AdminScreen> {
         return const GRAFICAS_FERTIAGRO_Screen();
       case 'Calculate_FERTIAGRO_Screen':
         return const Calculate_FERTIAGRO_Screen();
+      case 'Resumen_FERTIAGRO_Screen':
+        return const Resumen_Calculate_FERTIAGRO();
 
       // GROVITAL Screens
       case 'Dato_GROVITAL_Screen':
@@ -234,6 +243,8 @@ class _AdminScreenState extends State<AdminScreen> {
         return const GRAFICAS_GROVITAL_Screen();
       case 'Calculate_GROVITAL_Screen':
         return const Calculate_GROVITAL_Screen();
+      case 'Resumen_GROVITAL_Screen':
+        return const Resumen_Calculate_GROVITAL();
 
       // SUFAAZA Screens
       case 'Dato_SUFAAZA_Screen':
@@ -244,6 +255,8 @@ class _AdminScreenState extends State<AdminScreen> {
         return const GRAFICAS_SUFAAZA_Screen();
       case 'Calculate_SUFAAZA_Screen':
         return const Calculate_SUFAAZA_Screen();
+      case 'Resumen_SUFAAZA_Screen':
+        return const Resumen_Calculate_SUFAAZA();
 
       // TIERRAVID Screens
       case 'Dato_TIERRAVID_Screen':
@@ -254,6 +267,9 @@ class _AdminScreenState extends State<AdminScreen> {
         return const GRAFICAS_TIERRAVID_Screen();
       case 'Calculate_TIERRAVID_Screen':
         return const Calculate_TIERRAVID_Screen();
+      case 'Resumen_TIERRAVID_Screen':
+        return const Resumen_Calculate_TIERRAVID();
+
       // Other Screens
       case 'Rendimineto_Config':
         return const RendimientoConfig();
@@ -546,7 +562,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               },
                               {
                                 'title': 'Alimentación',
-                                'screen': 'Calculate_EXCANCRIGRU_Screen',
+                                'screen': 'Resumen_EXCANCRIGRU_Screen',
                                 'subtitle': 'EXCANCRIGRU - Alimentación'
                               }
                             ])
@@ -612,7 +628,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               },
                               {
                                 'title': 'Alimentación',
-                                'route': 'Calculate_FERTIAGRO_Screen',
+                                'route': 'Resumen_FERTIAGRO_Screen',
                                 'label': 'FERTIAGRO - Alimentación'
                               },
                             ])
@@ -680,7 +696,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               },
                               {
                                 'title': 'Alimentación',
-                                'route': 'Calculate_GROVITAL_Screen',
+                                'route': 'Resumen_GROVITAL_Screen',
                                 'label': 'GROVITAL - Alimentación'
                               },
                             ])
@@ -746,7 +762,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               },
                               {
                                 'title': 'Alimentación',
-                                'screen': 'Calculate_SUFAAZA_Screen',
+                                'screen': 'Resumen_SUFAAZA_Screen',
                                 'subtitle': 'SUFAAZA - Alimentación'
                               },
                             ].map((item) => Padding(
@@ -812,7 +828,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               },
                               {
                                 'title': 'Alimentación',
-                                'route': 'Calculate_TIERRAVID_Screen',
+                                'route': 'Resumen_TIERRAVID_Screen',
                                 'subtitle': 'TIERRAVID - Alimentación'
                               },
                             ].map(
@@ -1044,4 +1060,3 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 }
-

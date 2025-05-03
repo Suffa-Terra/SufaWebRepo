@@ -1,4 +1,4 @@
-// ignore_for_file: non_constant_identifier_names, unused_field, use_build_context_synchronously
+// ignore_for_file: non_constant_identifier_names, unused_field, use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -263,14 +263,12 @@ class _Calculate_EXCANCRIGRU_Screen_State
     _LBSHaActualCampoController.dispose();
     _incrementogrController.dispose();
     _pesoanteriorController.dispose();
-    _incrementogrController.dispose();
     _AcumuladoactualLBSController.dispose();
     _FCACampoController.dispose();
     _LibrastotalescampoController.dispose();
     _diferenciacampobiologoController.dispose();
     _LibrastotalesconsumoController.dispose();
     _HpHaController.dispose();
-    _HAireadoresMecanicosController.dispose();
     _LibrastotalesporAireadorController.dispose();
     _LBSTOLVAactualCampoController.dispose();
     _FCAConsumoController.dispose();
@@ -308,7 +306,9 @@ class _Calculate_EXCANCRIGRU_Screen_State
               "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
           return;
         }
-        _edadCultivoController.text = diferenciaDias.toString();
+        int masuno =
+            diferenciaDias + 1; // Ajustar para incluir el día de siembra
+        _edadCultivoController.text = masuno.toString();
       });
       setState(() {
         _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
@@ -1303,6 +1303,8 @@ class _Calculate_EXCANCRIGRU_Screen_State
         'LBShaconsumo': _LBSHaConsumoController.text,
         'Librastotalescampo': _LibrastotalescampoController.text,
         'Librastotalesconsumo': _LibrastotalesconsumoController.text,
+        'LBStolvaactualcampo': _LBSTOLVAactualCampoController.text,
+        'LBStolvasconsumo': _LBSTOLVASegunConsumoController.text,
         'HpHa': _HpHaController.text,
         'FCACampo': _FCACampoController.text,
         'FCAConsumo': _FCAConsumoController.text,
@@ -1416,6 +1418,45 @@ class _Calculate_EXCANCRIGRU_Screen_State
     }).toList();
     return Scaffold(
       backgroundColor: const Color(0xfff3ece7),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color.fromARGB(255, 126, 53, 0),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(25),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Color(0xfff3ece7),
+                size: 30,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            title: const Text(
+              'Alimentación - EXCANCRIGRU',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xfff3ece7),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           SingleChildScrollView(

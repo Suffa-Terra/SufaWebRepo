@@ -9,18 +9,18 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sufaweb/env_loader.dart';
 
-class Edit_Calculate_CAMANOVILLO extends StatefulWidget {
+class Edit_Calculate_GROVITAL extends StatefulWidget {
   final String id;
 
-  const Edit_Calculate_CAMANOVILLO({super.key, required this.id});
+  const Edit_Calculate_GROVITAL({super.key, required this.id});
 
   @override
-  State<Edit_Calculate_CAMANOVILLO> createState() =>
-      _Edit_Calculate_CAMANOVILLOState();
+  State<Edit_Calculate_GROVITAL> createState() =>
+      _Edit_Calculate_GROVITALState();
 }
 
-class _Edit_Calculate_CAMANOVILLOState
-    extends State<Edit_Calculate_CAMANOVILLO> {
+class _Edit_Calculate_GROVITALState
+    extends State<Edit_Calculate_GROVITAL> {
   final Map<String, TextEditingController> _controllers = {
     'AcumuladoactualLBS': TextEditingController(),
     'Acumuladosemanal': TextEditingController(),
@@ -155,15 +155,15 @@ class _Edit_Calculate_CAMANOVILLOState
   bool _editable = true;
   bool _Show_editable = false;
   late DatabaseReference _ref;
-  final String _selectedFinca = 'CAMANOVILLO';
+  final String _selectedFinca = 'GROVITAL';
   final basePath = EnvLoader.get('RESULT_ALIMENTATION');
 
-  List<Map<String, dynamic>> CAMANOVILLOData = [];
+  List<Map<String, dynamic>> GROVITALData = [];
   List<Map<String, dynamic>> rendimientoData = [];
   Map<double, double> referenciaTabla = {};
 
-  final DatabaseReference _CAMANOVILLORef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
+  final DatabaseReference _GROVITALRef =
+      FirebaseDatabase.instance.ref(EnvLoader.get('GROVITAL_ROWS')!);
   final DatabaseReference _rendimientoRef =
       FirebaseDatabase.instance.ref(EnvLoader.get('RENDIMIENTO_ROWS')!);
   final DatabaseReference referenciaTabla3 =
