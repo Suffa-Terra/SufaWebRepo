@@ -1,11 +1,11 @@
 {
-    "name": "sufaweb",
-    "short_name": "sufaweb",
+    "name": "Azaktilsa",
+    "short_name": "Azaktilsa",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#343434FF",
+    "background_color": "#f3ece7",
     "theme_color": "#C8C8C8FF",
-    "description": "A new Flutter project.",
+    "description": "Azaktilsa S.A es una empresa ecuatoriana especializada en la producción, exportación y sostenibilidad de camarón de alta calidad.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
