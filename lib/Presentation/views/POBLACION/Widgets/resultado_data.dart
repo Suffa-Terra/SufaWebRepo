@@ -1,6 +1,10 @@
 class ResultadoData {
-  final String nombre;
-  final String valor;
+  String campo;
+  String valor;
 
-  ResultadoData(this.nombre, this.valor);
+  ResultadoData(this.campo, this.valor);
+
+  bool estaCompleto() {
+    return campo != null && valor!.isNotEmpty;
+  }
 }

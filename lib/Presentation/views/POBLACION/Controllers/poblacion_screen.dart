@@ -14,13 +14,16 @@ class PoblacionScreen extends StatefulWidget {
 }
 
 class _PoblacionScreenState extends State<PoblacionScreen> {
+  late final String typeFinca;
   final controller = PoblacionController();
 
   @override
   void initState() {
     super.initState();
-    controller.hectareasController.addListener(controller.calcularDensidadSiembra);
-    controller.cantidadSiembraController.addListener(controller.calcularDensidadSiembra);
+    controller.hectareasController
+        .addListener(controller.calcularDensidadSiembra);
+    controller.cantidadSiembraController
+        .addListener(controller.calcularDensidadSiembra);
   }
 
   @override
@@ -54,6 +57,7 @@ class _PoblacionScreenState extends State<PoblacionScreen> {
               densidadSiembraController: controller.densidadSiembraController,
               pesoController: controller.pesoController,
               fechaPoblacionController: controller.fechaPoblacionController,
+              typeFinca: controller.typeFinca,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -83,8 +87,10 @@ class _PoblacionScreenState extends State<PoblacionScreen> {
                   "Numero de Lances": controller.lancesController,
                   "Camarones X Lances": controller.camaronesXLancesController,
                   "Batimetría": controller.batimentriaController,
-                  "N Camarones X Metro Sin Agua": controller.nCamaronesXMetroSinAguaController,
-                  "N Camarones X Metro Con Agua": controller.nCamaronesXMetroConAguaController,
+                  "N Camarones X Metro Sin Agua":
+                      controller.nCamaronesXMetroSinAguaController,
+                  "N Camarones X Metro Con Agua":
+                      controller.nCamaronesXMetroConAguaController,
                   "Cam Promedios": controller.camPromediosController,
                   "Población Actual": controller.poblacionActualController,
                   "Sobrevivencia": controller.sobrevivenciaController,

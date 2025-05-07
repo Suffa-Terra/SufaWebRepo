@@ -11,7 +11,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/services.dart';
 import 'package:sufaweb/Presentation/views/POBLACION/Widgets/resultado_data.dart';
 
-Future<void> exportarAPDF(List<ResultadoData> data) async {
+Future<void> exportarAPDF(
+  List<ResultadoData> data,
+) async {
   final font = pw.Font.ttf(
     await rootBundle.load('assets/fonts/static/NotoSans-Regular.ttf'),
   );
@@ -24,7 +26,7 @@ Future<void> exportarAPDF(List<ResultadoData> data) async {
       build: (context) {
         return pw.Table.fromTextArray(
           headers: ['Campo', 'Valor'],
-          data: data.map((e) => [e.nombre, e.valor]).toList(),
+          data: data.map((e) => [e.campo, e.valor]).toList(),
           headerStyle: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
           cellStyle: pw.TextStyle(font: font),
           cellAlignment: pw.Alignment.centerLeft,

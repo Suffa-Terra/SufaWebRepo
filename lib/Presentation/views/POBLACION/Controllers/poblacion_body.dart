@@ -14,7 +14,9 @@ class PoblacionBody extends StatefulWidget {
 }
 
 class _PoblacionBodyState extends State<PoblacionBody> {
-  final controller = PoblacionController();
+  late final String typeFinca;
+  final controller = PoblacionController(
+  );
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _PoblacionBodyState extends State<PoblacionBody> {
             densidadSiembraController: controller.densidadSiembraController,
             pesoController: controller.pesoController,
             fechaPoblacionController: controller.fechaPoblacionController,
+            typeFinca: typeFinca,
           ),
           const SizedBox(height: 16),
           TextField(

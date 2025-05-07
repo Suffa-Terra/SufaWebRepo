@@ -37,14 +37,18 @@ class PoblacionController {
   final TextEditingController pesoDeCamaronController = TextEditingController();
   final TextEditingController librasEstimadasController =
       TextEditingController();
+  late final String typeFinca;
 
   List<TextEditingController> camaronesControllers = [];
   List<TextEditingController> bactimetriaControllers = [];
 
-  final DatabaseReference camanovilloRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
-  final DatabaseReference baseRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_')!);
+  late final DatabaseReference typefincaRef;
+  late final DatabaseReference baseRef;
+
+  PoblacionController() {
+    typefincaRef = FirebaseDatabase.instance.ref(EnvLoader.get('${typeFinca}_ROWS')!);
+    baseRef = FirebaseDatabase.instance.ref(EnvLoader.get('${typeFinca}_')!);
+  }
 
   Future<List<Map<String, dynamic>>> fetchTerrenos() async {
     try {
@@ -132,12 +136,12 @@ class PoblacionController {
 
   Future<void> saveTutorialFlag(bool shown) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool("tutorial_mostrado_CAMANOVILLO_POBLACION", shown);
+    await prefs.setBool("tutorial_mostrado_${typeFinca}_POBLACION", shown);
   }
 
   Future<bool> wasTutorialShown() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool("tutorial_mostrado_CAMANOVILLO_POBLACION") ?? false;
+    return prefs.getBool("tutorial_mostrado_${typeFinca}_POBLACION") ?? false;
   }
 
   void dispose() {

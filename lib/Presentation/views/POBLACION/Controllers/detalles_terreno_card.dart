@@ -1,6 +1,7 @@
 // detalles_terreno_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
 import 'package:sufaweb/Presentation/views/POBLACION/Widgets/custom_text_fields.dart';
 
 class DetallesTerrenoCard extends StatelessWidget {
@@ -10,6 +11,7 @@ class DetallesTerrenoCard extends StatelessWidget {
   final TextEditingController densidadSiembraController;
   final TextEditingController pesoController;
   final TextEditingController fechaPoblacionController;
+  final String typeFinca;
   final void Function(DateTime)? onFechaSeleccionada;
 
   const DetallesTerrenoCard({
@@ -21,6 +23,7 @@ class DetallesTerrenoCard extends StatelessWidget {
     required this.pesoController,
     required this.fechaPoblacionController,
     this.onFechaSeleccionada,
+    required this.typeFinca,
   });
 
   @override
@@ -31,17 +34,14 @@ class DetallesTerrenoCard extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(20)),
       ),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 241, 238, 235),
-              Color.fromARGB(255, 241, 238, 235),
-            ],
+            colors: getGradientColors(typeFinca),
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
           ),
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          boxShadow: [
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          boxShadow: const [
             BoxShadow(
               color: Color.fromARGB(80, 0, 0, 0),
               offset: Offset(5, 5),

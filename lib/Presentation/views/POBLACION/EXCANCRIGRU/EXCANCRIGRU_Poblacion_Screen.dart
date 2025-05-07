@@ -4,10 +4,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sufaweb/Presentation/Utils/getBackgroundColor.dart';
 import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Functions/exportarAExcel.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Functions/exportarAPDF.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Functions/share_exported_file.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Widgets/resultado_data.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Widgets/resultado_data_source.dart';
+import 'package:sufaweb/Presentation/views/POBLACION/Widgets/tabla_dinamica_resultado.dart';
 import 'package:sufaweb/env_loader.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
@@ -69,6 +76,9 @@ class _Poblacion_EXCANCRIGRU_Screen_State
   TextEditingController sobrevivenciaController = TextEditingController();
   TextEditingController pesoDeCamaronController = TextEditingController();
   TextEditingController librasEstimadasController = TextEditingController();
+
+  late ResultadoDataGridSource _dataSource;
+  late List<ResultadoData> _data;
 
   final NumberFormat numberFormatter = NumberFormat("#,##0.##", "en_US");
 
@@ -319,6 +329,33 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     _formaterPoblation();
   }
 
+  List<ResultadoData> _generarDatos() {
+    return [
+      ResultadoData("Finca", _selectedFinca),
+      ResultadoData("Hectáreas", hectareasController.text),
+      ResultadoData("Piscinas", piscinasController.text),
+      ResultadoData("Cantidad de Siembra", cantidadSiembraController.text),
+      ResultadoData("Densidad de Siembra", densidadSiembraController.text),
+      ResultadoData("Peso", pesoController.text),
+      ResultadoData("Fecha de Población", fechaPoblacionController.text),
+      ResultadoData("Diámetro de Atarraya", diametroAtarrayaController.text),
+      ResultadoData("Total Bactimetría", resultBactimetriaController.text),
+      ResultadoData("Total camarones", resultCamaronesController.text),
+      ResultadoData("Número de Lances", lancesController.text),
+      ResultadoData("Camarones x Lances", camaronesXLancesController.text),
+      ResultadoData("Batimetría", batimentriaController.text),
+      ResultadoData("N Camarones x Metro Sin Agua",
+          nCamaronesXMetroSinAguaController.text),
+      ResultadoData("N Camarones x Metro Con Agua",
+          nCamaronesXMetroConAguaController.text),
+      ResultadoData("Cam Promedios", camPromediosController.text),
+      ResultadoData("Población Actual", poblacionActualController.text),
+      ResultadoData("Sobrevivencia", sobrevivenciaController.text),
+      ResultadoData("Peso de Camarón", pesoDeCamaronController.text),
+      ResultadoData("Libras Estimadas", librasEstimadasController.text),
+    ];
+  }
+
   void _updateTableRowsResult() {
     final DatabaseReference resultRef = FirebaseDatabase.instance
         .ref('${EnvLoader.get('POBLACION')}/$_selectedFinca');
@@ -402,6 +439,34 @@ class _Poblacion_EXCANCRIGRU_Screen_State
         const SnackBar(
           content: Text(
             'Por favor, complete el campo Diámetro de Atarraya.',
+            style: TextStyle(
+              color: Color.fromARGB(255, 255, 43, 43),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+      return;
+    } else if (resultCamaronesController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor, complete el campo Total Camarones.',
+            style: TextStyle(
+              color: Color.fromARGB(255, 255, 43, 43),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+      return;
+    } else if (resultBactimetriaController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor, complete el campo Total Bactimetría.',
             style: TextStyle(
               color: Color.fromARGB(255, 255, 43, 43),
               fontSize: 16,
@@ -532,9 +597,12 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     }
 
     setState(() {
+      _data = _generarDatos();
+      _dataSource = ResultadoDataGridSource(_data, _selectedFinca);
       tableRowsResult = rowsresult;
       isTableVisibleResult = dataLabelsResult.isNotEmpty;
     });
+
     // Desplazamiento con animación hacia la tabla
     Future.delayed(const Duration(milliseconds: 300), () {
       if (isTableVisibleResult) {
@@ -875,7 +943,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
               children: <Widget>[
                 SizedBox(height: 30),
                 Text(
-                  "Resultado Final",
+                  "Calcular",
                   style: TextStyle(
                     color: Color(0xfff3ece7),
                     fontSize: 22,
@@ -885,8 +953,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                 Padding(
                   padding: EdgeInsets.only(top: 10.0),
                   child: Text(
-                    "Aquí puedes ver el resultado final de la siembra, "
-                    "dando click en el botón de calcular.",
+                    'Aquí puedes ver el resultado final de la siembra,'
+                    'dando click en el botón "Calcular".',
                     style: TextStyle(
                       color: Color(0xfff3ece7),
                       fontSize: 16,
@@ -914,7 +982,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  "Reiniciar Tutorial",
+                  "Menú de Ajustes",
                   style: TextStyle(
                     color: Color(0xfff3ece7),
                     fontSize: 22,
@@ -924,7 +992,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                 Padding(
                   padding: EdgeInsets.only(top: 10.0),
                   child: Text(
-                    "Si deseas reiniciar el tutorial, puedes hacerlo desde aquí.",
+                    "Este botón te permite mostrar opciones como exportar a pdf, "
+                    "exportar a excel, compartir resultados y restablecer el tutorial.",
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
@@ -950,6 +1019,8 @@ class _Poblacion_EXCANCRIGRU_Screen_State
     cantidadSiembraController.addListener(_updateCalculatedFields);
     lancesController.addListener(_updateTableRows);
     ResultController.addListener(_updateTableRowsResult);
+    _data = _generarDatos();
+    _dataSource = ResultadoDataGridSource(_data, _selectedFinca);
   }
 
   void _loadHectareasPiscinas(String finca) async {
@@ -967,6 +1038,10 @@ class _Poblacion_EXCANCRIGRU_Screen_State
         }).toList();
       });
     }
+  }
+
+  bool datosCompletos() {
+    return _data.isNotEmpty && _data.every((d) => d.estaCompleto());
   }
 
   @override
@@ -1467,7 +1542,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Resultados finales:',
+                            'Calcular',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -1476,7 +1551,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                           ),
                           SizedBox(width: 10.0),
                           Icon(
-                            Icons.save_rounded,
+                            Icons.calculate_rounded,
                             color: Color(0xfff3ece7),
                           ),
                         ],
@@ -1484,53 +1559,11 @@ class _Poblacion_EXCANCRIGRU_Screen_State
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
                 if (isTableVisibleResult)
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: getGradientColors(typeFinca),
-                          begin: Alignment.bottomLeft,
-                          end: Alignment.topRight,
-                        ),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            offset: Offset(-10, 10),
-                            color: Color.fromARGB(80, 0, 0, 0),
-                            blurRadius: 10,
-                          ),
-                          BoxShadow(
-                              offset: Offset(10, -10),
-                              color: Color.fromARGB(150, 255, 255, 255),
-                              blurRadius: 10),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 10.0),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Table(
-                                    border: TableBorder.all(
-                                      color: Colors.transparent,
-                                    ),
-                                    children: tableRowsResult,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  TablaDinamicaResultado(
+                    dataSource: _dataSource,
+                    typeFinca: typeFinca,
                   ),
                 const SizedBox(height: 10),
               ],
@@ -1538,51 +1571,106 @@ class _Poblacion_EXCANCRIGRU_Screen_State
           ),
         ),
       ),
-      floatingActionButton: Tooltip(
+      floatingActionButton: SpeedDial(
         key: _resetTutorialPoblation,
-        message: "Reactivar tutorial",
-        height: 50,
-        padding: const EdgeInsets.all(8.0),
-        preferBelow: true,
-        textStyle: const TextStyle(fontSize: 20),
-        showDuration: const Duration(seconds: 2),
-        waitDuration: const Duration(seconds: 1),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
-          gradient: const LinearGradient(colors: <Color>[
-            Color(0xffe2dfd7),
-            Color(0xffe2dfd7),
-          ]),
-          boxShadow: const [
-            BoxShadow(
-              offset: Offset(-10, 10),
-              color: Color.fromARGB(80, 0, 0, 0),
-              blurRadius: 10,
+        icon: Icons.more_vert,
+        activeIcon: Icons.close,
+        iconTheme: const IconThemeData(
+          color: Color(0xfff3ece7),
+        ),
+        backgroundColor: const Color.fromARGB(255, 126, 53, 0),
+        overlayOpacity: 0.5,
+        spacing: 10,
+        spaceBetweenChildren: 10,
+        children: [
+          SpeedDialChild(
+            child: const Icon(
+              Icons.share,
+              color: Color(0xfff3ece7),
             ),
-            BoxShadow(
-                offset: Offset(10, -10),
-                color: Color.fromARGB(147, 202, 202, 202),
-                blurRadius: 10),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () async {
-            await resetTutorialPOBLACIONEXCANCRIGRU();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Tutorial restablecido. Para verlo,"
-                    " solo tienes que ir a otra interfaz y luego volver aquí."),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-          backgroundColor:
-              const Color.fromARGB(255, 126, 53, 0), // Color del botón
-          child: const Icon(
-            Icons.refresh,
-            color: Color(0xfff3ece7),
-          ), // Ícono de reinicio
-        ),
+            backgroundColor: const Color.fromARGB(255, 126, 53, 0),
+            label: 'Compartir en redes sociales',
+            onTap: () {
+              if (!datosCompletos()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Primero debes rellenar todos los datos y hacer clic en el botón "Calcular".'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              ShareRenderedImage.renderAndShare(
+                context: context,
+                data: _data, // Esta es la lista de ResultadoData
+                typefinca: typeFinca,
+                title: 'Resumen de resultados de $typeFinca',
+              );
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(
+              Icons.picture_as_pdf,
+              color: Color(0xfff3ece7),
+            ),
+            backgroundColor: const Color.fromARGB(255, 126, 53, 0),
+            label: 'Exportar en PDF',
+            onTap: () {
+              if (!datosCompletos()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Primero debes rellenar todos los datos y hacer clic en el botón "Calcular".'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              exportarAPDF(_data);
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(
+              Icons.table_chart,
+              color: Color(0xfff3ece7),
+            ),
+            backgroundColor: const Color.fromARGB(255, 126, 53, 0),
+            label: 'Exportar en Excel',
+            onTap: () {
+              if (!datosCompletos()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Primero debes rellenar todos los datos y hacer clic en el botón "Calcular".'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              exportarAExcel(_data);
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(
+              Icons.refresh,
+              color: Color(0xfff3ece7),
+            ),
+            backgroundColor: const Color.fromARGB(255, 126, 53, 0),
+            label: 'Reactivar tutorial',
+            onTap: () async {
+              await resetTutorialPOBLACIONEXCANCRIGRU();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      "Tutorial restablecido. Para verlo, solo tienes que ir a otra interfaz y luego volver aquí."),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -1623,6 +1711,7 @@ class _Poblacion_EXCANCRIGRU_Screen_State
             fontWeight: FontWeight.bold,
           ),
         ),
+        const SizedBox(height: 5),
         Wrap(
           spacing: 10.0,
           children: pagedItems.map((itemHect) {

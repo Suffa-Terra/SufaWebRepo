@@ -20,7 +20,7 @@ Future<void> exportarAExcel(List<ResultadoData> data) async {
   sheet.getRangeByName('B1').setText('Valor');
 
   for (int i = 0; i < data.length; i++) {
-    sheet.getRangeByIndex(i + 2, 1).setText(data[i].nombre);
+    sheet.getRangeByIndex(i + 2, 1).setText(data[i].campo);
     sheet.getRangeByIndex(i + 2, 2).setText(data[i].valor);
   }
 
