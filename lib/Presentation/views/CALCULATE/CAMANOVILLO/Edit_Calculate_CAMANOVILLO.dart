@@ -1685,12 +1685,14 @@ class _Edit_Calculate_CAMANOVILLOState
       _controllers['MarcaAA']?.text ?? '',
       _controllers['LBStolvaactualcampo']?.text ?? '',
       _controllers['LBStolva']?.text ?? '',
-      _controllers['Aireadores']?.text ?? '',
     ];
-    final rowData6 = [
+    final rowData5_1 = [
+      _controllers['Aireadores']?.text ?? '',
       _controllers['LibrastotalesporAireador']?.text ?? '',
       _controllers['HpHa']?.text ?? '',
       _controllers['Recomendacionlbsha']?.text ?? '',
+    ];
+    final rowData6 = [
       _controllers['Librastotalescampo']?.text ?? '',
       _controllers['Librastotalesconsumo']?.text ?? '',
     ];
@@ -1981,6 +1983,34 @@ class _Edit_Calculate_CAMANOVILLOState
                                     buildRow(row4, Colors.orange,
                                         isHeader: true),
                                     buildRow(rowData4, Colors.transparent),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "💨 Alimentadores",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 126, 53, 0),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Table(
+                                  defaultColumnWidth:
+                                      const FixedColumnWidth(140),
+                                  children: [
+                                    buildRow(row5, Colors.blue, isHeader: true),
+                                    buildRow(rowData5, Colors.transparent),
+                                    buildRow(row6, Colors.blue, isHeader: true),
+                                    buildRow(rowData6, Colors.transparent),
                                   ],
                                 ),
                               ),
