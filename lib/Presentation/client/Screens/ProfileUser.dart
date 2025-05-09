@@ -312,7 +312,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                       end: Alignment.topRight,
                     ),
                     color: Color.fromARGB(
-                        21, 244, 244, 244), // Color de fondo del contenedor
+                        21, 244, 244, 244),
                     borderRadius: BorderRadius.all(Radius.circular(80)),
                     boxShadow: [
                       BoxShadow(

@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/Edit/resumen_tablas_camanovillo.dart';
 import 'package:sufaweb/env_loader.dart';
 
 class Edit_Calculate_CAMANOVILLO extends StatefulWidget {
@@ -1331,13 +1332,16 @@ class _Edit_Calculate_CAMANOVILLOState
     'Marca AA',
     'LBS tolva actual campo',
     'LBS tolva',
-    'Aireadores',
   ];
 
-  final row6 = [
+  final row5_1 = [
+    'Aireadores',
     'Libras totales por Aireador',
     'Hp/Ha',
     'Recomendacion lbs/ha',
+  ];
+
+  final row6 = [
     'Libras totales campo',
     'Libras totales consumo',
   ];
@@ -1465,13 +1469,16 @@ class _Edit_Calculate_CAMANOVILLOState
       _controllers['MarcaAA']?.text ?? '',
       _controllers['LBStolvaactualcampo']?.text ?? '',
       _controllers['LBStolva']?.text ?? '',
-      _controllers['Aireadores']?.text ?? '',
     ];
 
-    final rowData6 = [
+    final rowData5_1 = [
+      _controllers['Aireadores']?.text ?? '',
       _controllers['LibrastotalesporAireador']?.text ?? '',
       _controllers['HpHa']?.text ?? '',
       _controllers['Recomendacionlbsha']?.text ?? '',
+    ];
+
+    final rowData6 = [
       _controllers['Librastotalescampo']?.text ?? '',
       _controllers['Librastotalesconsumo']?.text ?? '',
     ];
@@ -1486,6 +1493,7 @@ class _Edit_Calculate_CAMANOVILLOState
               "Alimentación Semanal", row3, rowData3, PdfColors.orange),
           buildTableSection("", row4, rowData4, PdfColors.orange),
           buildTableSection("Aireadores", row5, rowData5, PdfColors.blue),
+          buildTableSection("Aireadores", row5_1, rowData5_1, PdfColors.blue),
           buildTableSection("", row6, rowData6, PdfColors.blue),
         ],
       ),
@@ -1613,6 +1621,8 @@ class _Edit_Calculate_CAMANOVILLOState
 
   @override
   Widget build(BuildContext context) {
+    Map<String, String> data = _controllers.map((k, v) => MapEntry(k, v.text));
+
     TableRow buildEditableRow(List<Widget> widgets, Color color,
         {bool isHeader = false}) {
       return TableRow(
@@ -1629,104 +1639,6 @@ class _Edit_Calculate_CAMANOVILLOState
                   child: Center(child: widget),
                 ))
             .toList(),
-      );
-    }
-
-    final rowData1 = [
-      _controllers['Piscinas']?.text ?? '',
-      _controllers['Hectareas']?.text ?? '',
-      _controllers['Fechadesiembra']?.text ?? '',
-      _controllers['Fechademuestreo']?.text ?? '',
-      _controllers['Pesosiembra']?.text ?? '',
-      _controllers['Edaddelcultivo']?.text ?? '',
-      _controllers['Crecimientoactualgdia']?.text ?? '',
-      _controllers['Pesoanterior']?.text ?? '',
-      _controllers['Incrementogr']?.text ?? '',
-      _controllers['Pesoactualgdia']?.text ?? '',
-    ];
-
-    final rowData2 = [
-      _controllers['Pesoproyectadogdia']?.text ?? '',
-      _controllers['Crecimientoesperadogsem']?.text ?? '',
-      _controllers['Kg100mil']?.text ?? '',
-      _controllers['Alimentoactualkg']?.text ?? '',
-      _controllers['Sacosactuales']?.text ?? '',
-      _controllers['Densidadconsumoim2']?.text ?? '',
-      _controllers['Densidadbiologoindm2']?.text ?? '',
-      _controllers['DensidadporAtarraya']?.text ?? '',
-      _controllers['Diferenciacampobiologo']?.text ?? '',
-      '',
-    ];
-
-    final rowData3 = [
-      _controllers['Lunesdia1']?.text ?? '',
-      _controllers['Martesdia2']?.text ?? '',
-      _controllers['Miercolesdia3']?.text ?? '',
-      _controllers['Juevesdia4']?.text ?? '',
-      _controllers['Viernesdia5']?.text ?? '',
-      _controllers['Sabadodia6']?.text ?? '',
-      _controllers['Domingodia7']?.text ?? '',
-      _controllers['Recomendationsemana']?.text ?? '',
-    ];
-
-    final rowData4 = [
-      _controllers['Acumuladosemanal']?.text ?? '',
-      _controllers['TipoBalanceado']?.text ?? '',
-      _controllers['AcumuladoactualLBS']?.text ?? '',
-      _controllers['LBShaconsumo']?.text ?? '',
-      _controllers['LBShaactualcampo']?.text ?? '',
-      _controllers['FCACampo']?.text ?? '',
-      _controllers['FCAConsumo']?.text ?? '',
-      _controllers['RendimientoLbsSaco']?.text ?? '',
-    ];
-
-    final rowData5 = [
-      _controllers['numeroAA']?.text ?? '',
-      _controllers['MarcaAA']?.text ?? '',
-      _controllers['LBStolvaactualcampo']?.text ?? '',
-      _controllers['LBStolva']?.text ?? '',
-    ];
-    final rowData5_1 = [
-      _controllers['Aireadores']?.text ?? '',
-      _controllers['LibrastotalesporAireador']?.text ?? '',
-      _controllers['HpHa']?.text ?? '',
-      _controllers['Recomendacionlbsha']?.text ?? '',
-    ];
-    final rowData6 = [
-      _controllers['Librastotalescampo']?.text ?? '',
-      _controllers['Librastotalesconsumo']?.text ?? '',
-    ];
-
-    TableRow buildRow(List<String> values, Color color,
-        {bool isHeader = false}) {
-      return TableRow(
-        decoration: BoxDecoration(
-          border: Border.all(color: color),
-          borderRadius: BorderRadius.circular(12),
-          color: isHeader
-              ? color.withOpacity(0.1)
-              : const Color.fromARGB(255, 155, 155, 155).withOpacity(0.1),
-        ),
-        children: values.map((value) {
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            padding: const EdgeInsets.all(10),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-                    color: isHeader ? color : Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       );
     }
 
@@ -1922,130 +1834,10 @@ class _Edit_Calculate_CAMANOVILLOState
                   ),
                 ],
                 if (!_Show_editable) ...[
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 600),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 10),
-                              const Text(
-                                "📌 Datos Generales",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row1, Colors.teal, isHeader: true),
-                                    buildRow(rowData1, Colors.transparent),
-                                    buildRow(row2, Colors.teal, isHeader: true),
-                                    buildRow(rowData2, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "🍤 Alimentación Semanal",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row3, Colors.orange,
-                                        isHeader: true),
-                                    buildRow(rowData3, Colors.transparent),
-                                    buildRow(row4, Colors.orange,
-                                        isHeader: true),
-                                    buildRow(rowData4, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "💨 Alimentadores",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row5, Colors.blue, isHeader: true),
-                                    buildRow(rowData5, Colors.transparent),
-                                    buildRow(row6, Colors.blue, isHeader: true),
-                                    buildRow(rowData6, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "💨 Aireadores",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row5, Colors.blue, isHeader: true),
-                                    buildRow(rowData5, Colors.transparent),
-                                    buildRow(row6, Colors.blue, isHeader: true),
-                                    buildRow(rowData6, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
+                  SingleChildScrollView(
+                    child: ResumenTablasCAMANOVILLO(
+                      data: data,
+                      typeFinca: _selectedFinca,
                     ),
                   ),
                 ],
