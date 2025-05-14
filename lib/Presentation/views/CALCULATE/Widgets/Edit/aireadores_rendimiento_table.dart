@@ -1,6 +1,7 @@
 // Widget para tabla: Aireadores Rendimiento
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
 
 class AireadoresRendimientoTable extends StatelessWidget {
@@ -53,12 +54,10 @@ class AireadoresRendimientoTable extends StatelessWidget {
                     1: FlexColumnWidth(3),
                   },
                   children: [
-                    _buildRow(
-                        "Número AA", data['numeroAA'], Colors.pink[300]!,
+                    _buildRow("Número AA", data['numeroAA'], Colors.pink[300]!,
                         isHeader: true),
                     _spacerRow(),
-                    _buildRow(
-                        "Marca AA", data['MarcaAA'], Colors.pink[300]!,
+                    _buildRow("Marca AA", data['MarcaAA'], Colors.pink[300]!,
                         isHeader: false),
                     _spacerRow(),
                     _buildRow("LBS Tolva Actual Campo",
@@ -69,14 +68,12 @@ class AireadoresRendimientoTable extends StatelessWidget {
                         Colors.pink[300]!,
                         isHeader: false),
                     _spacerRow(),
-                    _buildRow("Aireadores", data['Aireadores'],
-                        Colors.pink[300]!,
+                    _buildRow(
+                        "Aireadores", data['Aireadores'], Colors.pink[300]!,
                         isHeader: true),
                     _spacerRow(),
-                    _buildRow(
-                        "Libras Totales por Aireador",
-                        data['LibrastotalesporAireador'],
-                        Colors.pink[300]!,
+                    _buildRow("Libras Totales por Aireador",
+                        data['LibrastotalesporAireador'], Colors.pink[300]!,
                         isHeader: false),
                     _spacerRow(),
                     _buildRow("Hp/Ha", data['HpHa'], Colors.pink[300]!,
@@ -95,8 +92,19 @@ class AireadoresRendimientoTable extends StatelessWidget {
     );
   }
 
+  static final NumberFormat numberFormatter = NumberFormat("#,##0.##", "en_US");
+
   TableRow _buildRow(String label, String? value, Color color,
       {bool isHeader = false}) {
+    String displayValue = value ?? "";
+
+    // Intentamos formatear si es numérico
+    if (value != null) {
+      final parsed = num.tryParse(value.replaceAll(",", ""));
+      if (parsed != null) {
+        displayValue = numberFormatter.format(parsed);
+      }
+    }
     return TableRow(
         decoration: BoxDecoration(
           border: Border.all(color: color),
@@ -126,7 +134,7 @@ class AireadoresRendimientoTable extends StatelessWidget {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(5),
-                child: Text(value ?? ""),
+                child: Text(displayValue),
               ),
             ),
           ),

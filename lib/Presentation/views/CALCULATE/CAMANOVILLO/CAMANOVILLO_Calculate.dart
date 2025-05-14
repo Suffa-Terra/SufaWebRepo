@@ -3,13 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/aireadores_lbs_widget.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/alimento_densidad_widget.dart';
 import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/fechas_widget.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/peso_crecimiento_widget.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/semana_dias_widget.dart';
 import 'package:sufaweb/env_loader.dart';
-import '../Widgets/custom_textfield.dart.dart';
 
 class Calculate_CAMANOVILLO_Screen extends StatefulWidget {
   const Calculate_CAMANOVILLO_Screen({Key? key}) : super(key: key);
@@ -21,6 +16,10 @@ class Calculate_CAMANOVILLO_Screen extends StatefulWidget {
 
 class _Calculate_CAMANOVILLO_Screen_State
     extends State<Calculate_CAMANOVILLO_Screen> {
+  String _selectedHectPisc = '';
+  List<String> _hectareasPiscinas = [];
+  String _selectedFinca = 'CAMANOVILLO';
+
   String? selectedHectareas;
   String? selectedPiscinas;
 
@@ -505,17 +504,113 @@ class _Calculate_CAMANOVILLO_Screen_State
     _calcularCrecimientoEsperado(pesoProyectado);
   }
 
+  void _calcularDensidadConsumo() async {
+    try {
+      // Obtener y validar inputs del usuario
+      double alimentoActualKg =
+          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
+      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
+      double pesoActualG =
+          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
+
+      print("Peso Actual G: $pesoActualG");
+      print("Hectáreas: $hectareas");
+      print("Alimento Actual Kg: $alimentoActualKg");
+
+      if (hectareas == 0 || pesoActualG == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Datos inválidos";
+        });
+        return;
+      }
+
+      // Obtener los datos de Firebase
+      DatabaseEvent event = await referenciaTabla3.once();
+      DataSnapshot snapshot = event.snapshot;
+
+      if (snapshot.value == null) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "No hay datos";
+        });
+        return;
+      }
+
+      // Procesar los datos como lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      // Convertir porcentaje BWCosechas a decimal
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      print("BWCosechas: $bwCosechas");
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Calcular densidad de consumo
+      double densidadConsumo = (alimentoActualKg / hectareas) *
+          10 /
+          (pesoActualG * (bwCosechasDecimal));
+      print("Densidad Consumo: $densidadConsumo");
+
+      // Mostrar el resultado
+      setState(() {
+        _densidadconsumoim2Controller.text = densidadConsumo.toStringAsFixed(2);
+      });
+    } catch (e) {
+      print("Error al calcular densidad: $e");
+      setState(() {
+        _densidadconsumoim2Controller.text = "Error";
+      });
+    }
+  }
+
   // Método para calcular el crecimiento esperado en porcentaje
   void diferenciacampobiologo() {
-    bool densidadconsumo = _densidadconsumoim2Controller.text.isNotEmpty;
-    bool densidadbiologo = _densidadbiologoindm2Controller.text.isNotEmpty;
+    String consumoText = _densidadconsumoim2Controller.text.trim();
+    String biologoText = _densidadbiologoindm2Controller.text.trim();
 
-    if (densidadconsumo && densidadbiologo) {
-      double densidadconsumo = double.parse(_densidadconsumoim2Controller.text);
-      double densidadbiologo =
-          double.parse(_densidadbiologoindm2Controller.text);
+    double? densidadconsumo = double.tryParse(consumoText);
+    double? densidadbiologo = double.tryParse(biologoText);
 
-      // Calcula la diferencia como porcentaje y redondea a entero
+    if (densidadconsumo != null &&
+        densidadbiologo != null &&
+        densidadbiologo != 0) {
       double diferencia = ((densidadconsumo / densidadbiologo) - 1) * 100;
       int porcentaje = diferencia.round();
 
@@ -524,7 +619,7 @@ class _Calculate_CAMANOVILLO_Screen_State
       });
     } else {
       setState(() {
-        _diferenciacampobiologoController.text = "0"; // Valor por defecto
+        _diferenciacampobiologoController.text = "0";
       });
     }
   }
@@ -554,67 +649,6 @@ class _Calculate_CAMANOVILLO_Screen_State
     }
   }
 
-  void _calcularDensidadConsumo() async {
-    try {
-      double alimentoActualKg =
-          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
-      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
-      double pesoActualG =
-          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
-
-      // Referencia a la base de datos
-
-      // Obtener los datos de Firebase
-      DatabaseEvent event = await referenciaTabla3.once();
-      DataSnapshot snapshot = event.snapshot;
-
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Filtrar los datos para encontrar el peso más cercano sin superar
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-
-        bwCosechasDecimal /= 100;
-
-        // Aplicar la fórmula
-        double densidadConsumo = (alimentoActualKg / hectareas) *
-            10 /
-            (pesoActualG * (bwCosechasDecimal * 100));
-
-        // Mostrar el resultado en _densidadconsumoim2Controller
-        setState(() {
-          _densidadconsumoim2Controller.text =
-              densidadConsumo.toStringAsFixed(2);
-        });
-      } else {
-        setState(() {
-          _densidadconsumoim2Controller.text = "No hay datos";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _densidadconsumoim2Controller.text = "Error";
-      });
-    }
-  }
-
   void _calcularkg100mil() {
     double alimentoKg =
         double.tryParse(_alimentoactualkgController.text) ?? 0.0;
@@ -638,56 +672,84 @@ class _Calculate_CAMANOVILLO_Screen_State
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoActualG == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
       // Obtener los datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double LunesDia1 =
-            ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
-
-        setState(() {
-          // Si hay un error, asignar 25 en lugar de un número vacío
-          _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
-              ? "25"
-              : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _LunesDia1Controller.text = "No hay datos";
         });
+        return;
       }
+
+      // Convertir datos a lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _LunesDia1Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el peso actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Cálculo
+      double LunesDia1 =
+          ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
+
+      setState(() {
+        _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
+            ? "25"
+            : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular LunesDia1: $e");
       setState(() {
         _LunesDia1Controller.text = "Error";
       });
@@ -702,57 +764,83 @@ class _Calculate_CAMANOVILLO_Screen_State
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoProject == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
-      // Obtener los datos de Firebase
+      // Obtener datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoProject && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double DomingoDia7 =
-            ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (DomingoDia7 ~/ 25) * 25;
-
-        // Si hay un error, asignar 25 en lugar de un número vacío
-        setState(() {
-          _DomingoDia7Controller.text =
-              (DomingoDia7.isNaN || DomingoDia7.isInfinite)
-                  ? "25"
-                  : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _DomingoDia7Controller.text = "No hay datos";
         });
+        return;
       }
+
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _DomingoDia7Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el proyectado
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoProject && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      double DomingoDia7 =
+          ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (DomingoDia7 / 25).round() * 25;
+
+      setState(() {
+        _DomingoDia7Controller.text =
+            (DomingoDia7.isNaN || DomingoDia7.isInfinite)
+                ? "25"
+                : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular DomingoDia7: $e");
       setState(() {
         _DomingoDia7Controller.text = "Error";
       });
@@ -1168,10 +1256,6 @@ class _Calculate_CAMANOVILLO_Screen_State
     });
   }
 
-  String _selectedHectPisc = '';
-  List<String> _hectareasPiscinas = [];
-  String _selectedFinca = 'CAMANOVILLO';
-
   void _loadHectareasPiscinas(String finca) async {
     final snapshot = await _CAMANOVILLORef.get();
     if (snapshot.exists) {
@@ -1416,6 +1500,229 @@ class _Calculate_CAMANOVILLO_Screen_State
     List<String> itemsHesct = CAMANOVILLOData.map((data) {
       return 'Hect: ${data['Hectareas']} - Pisc: ${data['Piscinas']}';
     }).toList();
+
+    // Controller for displaying selectedTipoBalanceado as read-only in the table
+    final TextEditingController _tipoBalanceadoController =
+        TextEditingController(text: selectedTipoBalanceado ?? '');
+
+    final List<Widget> resultadoTablas = [
+      const Text(
+        "📌 Datos Generales",
+        style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 126, 53, 0)),
+      ),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {
+          0: FlexColumnWidth(2),
+          1: FlexColumnWidth(3),
+        },
+        children: [
+          _buildEditableRow("Piscina", _piscinasController, Colors.teal,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Área (Ha)", _HectareasController, Colors.teal),
+          _spacerRow(),
+          _buildEditableRow(
+              "Fecha de siembra", _fechaSiembraController, Colors.teal,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow(
+              "Fecha de muestreo", _fechaMuestreoController, Colors.teal),
+          _spacerRow(),
+          _buildEditableRow("Peso siembra", _pesosiembraController, Colors.teal,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow(
+              "Edad del cultivo", _edadCultivoController, Colors.teal),
+          _spacerRow(),
+          _buildEditableRow("Crecimiento actual (g/día)",
+              _crecimactualgdiaController, Colors.teal,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow(
+              "Peso anterior", _pesoanteriorController, Colors.teal),
+          _spacerRow(),
+          _buildEditableRow(
+              "Incremento gr", _incrementogrController, Colors.teal,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Peso actual campo (g)",
+              _pesoproyectadogdiaController, Colors.teal),
+        ],
+      ),
+      const SizedBox(height: 20),
+      const Text("📊 Crecimiento y Consumo",
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 126, 53, 0))),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(3)},
+        children: [
+          _buildEditableRow(
+              "Peso proyectado (g)", _pesoproyectadogdiaController, Colors.blue,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Crecimiento esperado (g/sem)",
+              _crecimientoesperadosemController, Colors.blue),
+          _spacerRow(),
+          _buildEditableRow("Kg/100 mil", _kg100milController, Colors.blue,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Alimento actual Campo (kg)",
+              _alimentoactualkgController, Colors.blue),
+          _spacerRow(),
+          _buildEditableRow(
+              "Sacos actuales", _sacosactualesController, Colors.blue,
+              isHeader: true),
+        ],
+      ),
+      const SizedBox(height: 20),
+      const Text("🧮 Densidades y Diferencias",
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 126, 53, 0))),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(3)},
+        children: [
+          _buildEditableRow("Densidad por Consumo (i/m²)",
+              _densidadconsumoim2Controller, Colors.purple,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Densidad Biólogo (ind/m²)",
+              _densidadbiologoindm2Controller, Colors.purple),
+          _spacerRow(),
+          _buildEditableRow("Densidad por Atarraya",
+              _densidadatarrayaController, Colors.purple,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Diferencia campo vs biólogo",
+              _diferenciacampobiologoController, Colors.purple),
+        ],
+      ),
+      const SizedBox(height: 20),
+      const Text("📅 Planificación Semanal",
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 126, 53, 0))),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(3)},
+        children: [
+          _buildEditableRow("Lunes", _LunesDia1Controller, Colors.orange,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Martes", _MartesDia2Controller, Colors.orange),
+          _spacerRow(),
+          _buildEditableRow(
+              "Miércoles", _MiercolesDia3Controller, Colors.orange,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Jueves", _JuevesDia4Controller, Colors.orange),
+          _spacerRow(),
+          _buildEditableRow("Viernes", _ViernesDia5Controller, Colors.orange,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Sábado", _SabadoDia6Controller, Colors.orange),
+          _spacerRow(),
+          _buildEditableRow("Domingo", _DomingoDia7Controller, Colors.orange,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Promedio Semanal", _RecomendationSemanaController,
+              Colors.orange),
+          _spacerRow(),
+          _buildEditableRow(
+              "Acumulado Semanal", _AcumuladoSemanalController, Colors.orange,
+              isHeader: true),
+        ],
+      ),
+      const SizedBox(height: 20),
+      const Text("🛠️ Alimentación y Aireadores",
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 126, 53, 0))),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(3)},
+        children: [
+          _buildEditableRow("Número AA", _NumeroAAController, Colors.pink,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow(
+            "Marca AA",
+            TextEditingController(text: selectedMarcaAA ?? ''),
+            Colors.pink,
+          ),
+          _spacerRow(),
+          _buildEditableRow("LBS Tolva Actual Campo",
+              _LBSTOLVAactualCampoController, Colors.pink,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("LBS Tolva Consumo",
+              _LBSTOLVASegunConsumoController, Colors.pink),
+          _spacerRow(),
+          _buildEditableRow("Libras Totales por Aireador",
+              _LibrastotalesporAireadorController, Colors.pink,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Hp/Ha", _HpHaController, Colors.pink),
+          _spacerRow(),
+          _buildEditableRow("Recomendación lbs/ha",
+              _RecomendacionLbshaController, Colors.pink,
+              isHeader: true),
+        ],
+      ),
+      const SizedBox(height: 20),
+      const Text("📦 Totales y Recomendaciones",
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 126, 53, 0))),
+      const SizedBox(height: 10),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(3)},
+        children: [
+          _buildEditableRow(
+              "Tipo Balanceado", _tipoBalanceadoController, Colors.indigo,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Acumulado Actual LBS",
+              _AcumuladoactualLBSController, Colors.indigo),
+          _spacerRow(),
+          _buildEditableRow(
+              "LBS/ha Consumo", _LBSHaConsumoController, Colors.indigo,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("LBS/ha Actual Campo", _LBSHaActualCampoController,
+              Colors.indigo),
+          _spacerRow(),
+          _buildEditableRow("FCA Campo", _FCACampoController, Colors.indigo,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow(
+              "FCA Consumo", _FCAConsumoController, Colors.indigo),
+          _spacerRow(),
+          _buildEditableRow("Rendimiento Lbs/Saco",
+              _RendimientoLbsSacoController, Colors.indigo,
+              isHeader: true),
+          _spacerRow(),
+          _buildEditableRow("Libras Totales Campo",
+              _LibrastotalescampoController, Colors.indigo),
+          _spacerRow(),
+          _buildEditableRow("Libras Totales Consumo",
+              _LibrastotalesconsumoController, Colors.indigo,
+              isHeader: true),
+        ],
+      ),
+    ];
     return Scaffold(
       backgroundColor: const Color(0xfff3ece7),
       appBar: PreferredSize(
@@ -1628,129 +1935,23 @@ class _Calculate_CAMANOVILLO_Screen_State
                   ),
                   const SizedBox(height: 20),
                   if (_showResults)
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              PesoCrecimientoWidget(
-                                crecimactualgdiaController:
-                                    _crecimactualgdiaController,
-                                incrementogrController: _incrementogrController,
-                                pesoproyectadogdiaController:
-                                    _pesoproyectadogdiaController,
-                                crecimientoesperadosemController:
-                                    _crecimientoesperadosemController,
-                                sacosactualesController:
-                                    _sacosactualesController,
-                                kg100milController: _kg100milController,
-                                densidadconsumoim2Controller:
-                                    _densidadconsumoim2Controller,
-                                diferenciacampobiologoController:
-                                    _diferenciacampobiologoController,
-                              ),
-                            ],
-                          ),
-                        ),
-                        SemanaDiasWidget(
-                          lunesController: _LunesDia1Controller,
-                          martesController: _MartesDia2Controller,
-                          miercolesController: _MiercolesDia3Controller,
-                          juevesController: _JuevesDia4Controller,
-                          viernesController: _ViernesDia5Controller,
-                          sabadoController: _SabadoDia6Controller,
-                          domingoController: _DomingoDia7Controller,
-                          recomendacionController:
-                              _RecomendationSemanaController,
-                          acumuladoController: _AcumuladoSemanalController,
-                        ),
-                        AlimentoDensidadWidget(
-                          lbsHaConsumoController: _LBSHaConsumoController,
-                          lbsHaActualCampoController:
-                              _LBSHaActualCampoController,
-                          fcaCampoController: _FCACampoController,
-                          fcaConsumoController: _FCAConsumoController,
-                          rendimientoLbsSacoController:
-                              _RendimientoLbsSacoController,
-                        ),
-                        Padding(
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 2),
+                        child: Padding(
                           padding: const EdgeInsets.all(10.0),
-                          child: Container(
-                            margin: const EdgeInsets.only(top: 2),
+                          child: Center(
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Número AA',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                                CustomTextField(
-                                  controller: _NumeroAAController,
-                                  label: '0.00',
-                                  keyboardType: TextInputType.number,
-                                  isReadOnly: false,
-                                ),
-                                const SizedBox(height: 10),
-                                _buildMarcaAASelect(
-                                  itemsMarcaAA,
-                                  selectedMarcaAA,
-                                  "Marca AA:",
-                                ),
-                                const SizedBox(height: 10),
-                                const Text(
-                                  'LBS/TOLVA actual campo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                                CustomTextField(
-                                  controller: _LBSTOLVAactualCampoController,
-                                  label: '0.00',
-                                  keyboardType: TextInputType.number,
-                                  isReadOnly: false,
-                                ),
-                                const SizedBox(height: 10),
-                                const Text(
-                                  'LBS/TOLVA Según consumo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                                CustomTextField(
-                                  controller: _LBSTOLVASegunConsumoController,
-                                  label: '0.00',
-                                  keyboardType: TextInputType.number,
-                                  isReadOnly: false,
-                                ),
-                                const SizedBox(height: 10),
+                                ...resultadoTablas,
                               ],
                             ),
                           ),
                         ),
-                        AireadoresLBSWidget(
-                          librasTotalesPorAireadorController:
-                              _LibrastotalesporAireadorController,
-                          hpHaController: _HpHaController,
-                          recomendacionLbshaController:
-                              _RecomendacionLbshaController,
-                          librasTotalesCampoController:
-                              _LibrastotalescampoController,
-                          librasTotalesConsumoController:
-                              _LibrastotalesconsumoController,
-                        ),
-                      ],
-                    )
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1759,6 +1960,61 @@ class _Calculate_CAMANOVILLO_Screen_State
       ),
     );
   }
+
+  static final NumberFormat numberFormatter = NumberFormat("#,##0.##", "en_US");
+
+  TableRow _buildEditableRow(
+      String label, TextEditingController controller, Color color,
+      {bool isHeader = false}) {
+    String displayValue = controller.text;
+
+    // Intentamos formatear si es numérico
+    if (displayValue.isNotEmpty) {
+      final parsed = num.tryParse(displayValue.replaceAll(",", ""));
+      if (parsed != null) {
+        displayValue = numberFormatter.format(parsed);
+      }
+    }
+    return TableRow(
+        decoration: BoxDecoration(
+          border: Border.all(color: color),
+          borderRadius: BorderRadius.circular(12),
+          color: isHeader
+              ? color.withOpacity(0.1)
+              : const Color.fromARGB(255, 155, 155, 155).withOpacity(0.1),
+        ),
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.all(5),
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+                  color: isHeader ? color : Colors.black,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.all(5),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: Text(displayValue),
+              ),
+            ),
+          ),
+        ]);
+  }
+
+  TableRow _spacerRow() => const TableRow(children: [
+        SizedBox(height: 5),
+        SizedBox(height: 5),
+      ]);
 
   Widget _buildHesctSelect(List<String> itemsHesct, String selectedItemHesct,
       String titleHesct, String categoryHesct) {

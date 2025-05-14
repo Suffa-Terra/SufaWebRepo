@@ -163,10 +163,6 @@ class _Edit_Calculate_CAMANOVILLOState
   List<Map<String, dynamic>> rendimientoData = [];
   Map<double, double> referenciaTabla = {};
 
-  final DatabaseReference _CAMANOVILLORef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('CAMANOVILLO_ROWS')!);
-  final DatabaseReference _rendimientoRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('RENDIMIENTO_ROWS')!);
   final DatabaseReference referenciaTabla3 =
       FirebaseDatabase.instance.ref(EnvLoader.get('PESOS_ALIMENTO')!);
 
@@ -287,30 +283,35 @@ class _Edit_Calculate_CAMANOVILLOState
 
   void _calcularEdadCultivo() {
     try {
+      if (_fechaSiembraController.text.trim().isEmpty ||
+          _fechaMuestreoController.text.trim().isEmpty) {
+        print("⚠️ Error: Una o ambas fechas están vacías.");
+        return;
+      }
+
+      DateTime fechaSiembra =
+          DateFormat('dd/MM/yyyy').parse(_fechaSiembraController.text);
+      DateTime fechaMuestreo =
+          DateFormat('dd/MM/yyyy').parse(_fechaMuestreoController.text);
+
+      print(
+          "Fecha de siembra: ${_fechaSiembraController.text}, Fecha de muestreo: ${_fechaMuestreoController.text}");
+
+      int diferenciaDias = fechaMuestreo.difference(fechaSiembra).inDays;
+
+      print("Diferencia de días: $diferenciaDias");
+
+      if (diferenciaDias < 0) {
+        print(
+            "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
+        return;
+      }
+
       setState(() {
-        if (_fechaSiembraController.text.trim().isEmpty ||
-            _fechaMuestreoController.text.trim().isEmpty) {
-          print("⚠️ Error: Una o ambas fechas están vacías.");
-          return;
-        }
-
-        DateTime fechaSiembra =
-            DateFormat('dd/MM/yyyy').parse(_fechaSiembraController.text);
-        DateTime fechaMuestreo =
-            DateFormat('dd/MM/yyyy').parse(_fechaMuestreoController.text);
-
-        int diferenciaDias = fechaMuestreo.difference(fechaSiembra).inDays;
-
-        if (diferenciaDias < 0) {
-          print(
-              "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
-          return;
-        }
         _edadCultivoController.text = diferenciaDias.toString();
       });
-      setState(() {
-        _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
-      });
+
+      _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
     } catch (e) {
       print('⚠️ Error en el cálculo de la edad del cultivo: $e');
     }
@@ -1104,8 +1105,6 @@ class _Edit_Calculate_CAMANOVILLOState
       final data = snapshot.value as Map?;
 
       if (data != null) {
-        print("data: $data");
-        print("Claves recibidas:");
         data.keys.forEach((key) => print("-> $key"));
 
         // Cargar los valores de Firebase en los controladores
@@ -1136,12 +1135,16 @@ class _Edit_Calculate_CAMANOVILLOState
                   false); // Desbloquear si no está bloqueado
               for (final entry in _controllers.entries) {
                 entry.value.text = data[entry.key]?.toString() ?? '';
-                print("key: ${entry.key} value: ${entry.value.text}");
               }
             });
 
             // Llama a los cálculos después de cargar los datos
-            _dispararTodosLosCalculos();
+            if (_fechaSiembraController.text.isNotEmpty &&
+                _fechaMuestreoController.text.isNotEmpty) {
+              _dispararTodosLosCalculos();
+            } else {
+              print("⚠️ No se ejecutaron cálculos porque faltan fechas.");
+            }
           }
         });
       }
@@ -1546,76 +1549,171 @@ class _Edit_Calculate_CAMANOVILLOState
     });
   }
 
+  bool _fechaMuestreoModificada = false;
+
   // Método para actualizar los campos editables
   void updateEditableFields() async {
-    _calcularEdadCultivo();
-    _calcularDensidadConsumo();
-    diferenciacampobiologo();
-    _incrementogr();
-    _calcularCrecimientoActual();
-    _calcularSacosActuales();
-    _calcularkg100mil();
-    _onDataChange(); // este ya incluye muchos cálculos
-    CalcularRendimientoLbsSaco();
-    CalcularLibrastotalescampo();
-    CalcularLBSTOLVAACTUAL();
-    CalcularLBSTOLVAConsumo();
-    librastotalesconsumo();
-    LibrastotalesporAireador();
-    CalcularHPHA();
-    FCACampo();
-    FCAConsumo();
+    double progress = 0.0;
 
-    await Future.delayed(const Duration(
-        milliseconds: 500)); // Pequeño delay para asegurar cálculos
-
-    final Map<String, dynamic> dataToUpdate = {
-      'Fechademuestreo': _fechaMuestreoController.text,
-      'Edaddelcultivo': _edadCultivoController.text,
-      'Pesosiembra': _pesosiembraController.text,
-      'Pesoanterior': _pesoanteriorController.text,
-      'Pesoactualgdia': _pesoactualgdiaController.text,
-      'Alimentoactualkg': _alimentoactualkgController.text,
-      'Densidadbiologoindm2': _densidadbiologoindm2Controller.text,
-      'DensidadporAtarraya': _densidadatarrayaController.text,
-      'numeroAA': _NumeroAAController.text,
-      'AcumuladoactualLBS': _AcumuladoactualLBSController.text,
-      'Aireadores': _HAireadoresMecanicosController.text,
-      // Puedes agregar más si lo deseas
-      'Librastotalescampo': _LibrastotalescampoController.text,
-      'Librastotalesconsumo': _LibrastotalesconsumoController.text,
-      'LBSTOLVAactualCampo': _LBSTOLVAactualCampoController.text,
-      'LBSTOLVASegunConsumo': _LBSTOLVASegunConsumoController.text,
-      'LibrastotalesporAireador': _LibrastotalesporAireadorController.text,
-      'HpHa': _HpHaController.text,
-      'Recomendacionlbsha': _RecomendacionLbshaController.text,
-      'FCACampo': _FCACampoController.text,
-      'FCAConsumo': _FCAConsumoController.text,
-      'RendimientoLbsSaco': _RendimientoLbsSacoController.text,
-      'Acumuladosemanal': _AcumuladoSemanalController.text,
-      'LBShaconsumo': _LBSHaConsumoController.text,
-      'LBShaactualcampo': _LBSHaActualCampoController.text,
-      'Densidadconsumoim2': _densidadconsumoim2Controller.text,
-      'Lunesdia1': _LunesDia1Controller.text,
-      'Martesdia2': _MartesDia2Controller.text,
-      'Miercolesdia3': _MiercolesDia3Controller.text,
-      'Juevesdia4': _JuevesDia4Controller.text,
-      'Viernesdia5': _ViernesDia5Controller.text,
-      'Sabadodia6': _SabadoDia6Controller.text,
-      'Domingodia7': _DomingoDia7Controller.text,
-      'Recomendationsemana': _RecomendationSemanaController.text,
-      'LBStolvaactualcampo': _LBSTOLVAactualCampoController.text,
-      'LBStolva': _LBSTOLVASegunConsumoController.text,
-    };
+    // Mostrar barra de carga en un diálogo
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: const Text('Actualizando datos...'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LinearProgressIndicator(value: progress),
+                  const SizedBox(height: 20),
+                  Text('${(progress * 100).toStringAsFixed(0)}% completado'),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
 
     final dbRef = FirebaseDatabase.instance.ref(
         '${EnvLoader.get('RESULT_ALIMENTATION')}/$_selectedFinca/${widget.id}');
 
-    await dbRef.update(dataToUpdate);
+    try {
+      final snapshot = await dbRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('✅ Datos calculados y guardados exitosamente')),
+        final fechaSiembraDB = data['Fechadesiembra'];
+        if (_fechaSiembraController.text.trim().isEmpty &&
+            fechaSiembraDB != null &&
+            fechaSiembraDB is String) {
+          _fechaSiembraController.text = fechaSiembraDB;
+          print("📅 Fecha de siembra cargada desde Firebase.");
+        } else if (_fechaSiembraController.text.trim().isEmpty) {
+          print(
+              "⚠️ No se encontró una fecha de siembra válida en la base de datos.");
+          return;
+        }
+
+        final fechaMuestreoActual = _fechaMuestreoController.text.trim();
+        final fechaSiembraActual = _fechaSiembraController.text.trim();
+
+        if (_fechaMuestreoModificada) {
+          print("🚨 La fecha de muestreo ha sido modificada manualmente.");
+        }
+
+        if (fechaMuestreoActual.isNotEmpty && fechaSiembraActual.isNotEmpty) {
+          print("📊 Calculando edad del cultivo...");
+          print("📅 Fecha de siembra: $fechaSiembraActual");
+          print("📅 Fecha de muestreo: $fechaMuestreoActual");
+          _calcularEdadCultivo();
+        } else {
+          print("⚠️ Una o ambas fechas están vacías, no se calculó la edad.");
+        }
+      }
+
+      // Cálculos por etapas
+      await Future.delayed(const Duration(milliseconds: 100));
+      progress = 0.15;
+      _showProgress(progress);
+
+      //_calcularDensidadConsumo();
+      //await Future.delayed(const Duration(milliseconds: 100));
+      //diferenciacampobiologo();
+      //_incrementogr();
+      //progress = 0.30;
+      //_showProgress(progress);
+
+      
+
+      final Map<String, dynamic> dataToUpdate = {
+        'Finca': _selectedFinca,
+        'Hectareas': _HectareasController.text,
+        'Piscinas': _piscinasController.text,
+        'Fechadesiembra': _fechaSiembraController.text,
+        'Fechademuestreo': _fechaMuestreoController.text,
+        'Edaddelcultivo': _edadCultivoController.text,
+        'Pesosiembra': _pesosiembraController.text,
+        'Pesoactualgdia': _pesoactualgdiaController.text,
+        'Crecimientoactualgdia': _crecimactualgdiaController.text,
+        'Pesoproyectadogdia': _pesoproyectadogdiaController.text,
+        'Crecimientoesperadogsem': _crecimientoesperadosemController.text,
+        'Alimentoactualkg': _alimentoactualkgController.text,
+        'Kg100mil': _kg100milController.text,
+        'Densidadconsumoim2': _densidadconsumoim2Controller.text,
+        'Densidadbiologoindm2': _densidadbiologoindm2Controller.text,
+        'DensidadporAtarraya': _densidadatarrayaController.text,
+        'Lunesdia1': _LunesDia1Controller.text,
+        'Martesdia2': _MartesDia2Controller.text,
+        'Miercolesdia3': _MiercolesDia3Controller.text,
+        'Juevesdia4': _JuevesDia4Controller.text,
+        'Viernesdia5': _ViernesDia5Controller.text,
+        'Sabadodia6': _SabadoDia6Controller.text,
+        'Domingodia7': _DomingoDia7Controller.text,
+        'Recomendationsemana': _RecomendationSemanaController.text,
+        'Acumuladosemanal': _AcumuladoSemanalController.text,
+        'numeroAA': _NumeroAAController.text,
+        'Aireadores': _HAireadoresMecanicosController.text,
+        'Aireadoresdiesel': _AireadoresdieselController.text,
+        'Capacidadcargaaireaccion': _CapacidadcargaaireaccionController.text,
+        'LBStolva': _LBSTOLVASegunConsumoController.text,
+        'Recomendacionlbsha': _RecomendacionLbshaController.text,
+        'LBShaactualcampo': _LBSHaActualCampoController.text,
+        'LBShaconsumo': _LBSHaConsumoController.text,
+        'Librastotalescampo': _LibrastotalescampoController.text,
+        'Librastotalesconsumo': _LibrastotalesconsumoController.text,
+        'LBStolvaactualcampo': _LBSTOLVAactualCampoController.text,
+        'LBStolvasconsumo': _LBSTOLVASegunConsumoController.text,
+        'HpHa': _HpHaController.text,
+        'FCACampo': _FCACampoController.text,
+        'FCAConsumo': _FCAConsumoController.text,
+        'RendimientoLbsSaco': _RendimientoLbsSacoController.text,
+        'LibrastotalesporAireador': _LibrastotalesporAireadorController.text,
+        'AcumuladoactualLBS': _AcumuladoactualLBSController.text,
+        'Diferenciacampobiologo': _diferenciacampobiologoController.text,
+        'Sacosactuales': _sacosactualesController.text,
+        'Pesoanterior': _pesoanteriorController.text,
+        'Incrementogr': _incrementogrController.text,
+      };
+
+      await dbRef.update(dataToUpdate);
+
+      setState(() {
+        _Show_Edit();
+      });
+    } catch (e) {
+      print("⚠️ Error obteniendo la fecha de siembra: $e");
+      return;
+    } finally {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Datos calculados y guardados exitosamente'),
+        ),
+      );
+    }
+  }
+
+  // Mostrar el diálogo con el progreso actualizado
+  void _showProgress(double progress) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Actualizando datos...'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(value: progress),
+              const SizedBox(height: 20),
+              Text('${(progress * 100).toStringAsFixed(0)}% completado'),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1749,15 +1847,20 @@ class _Edit_Calculate_CAMANOVILLOState
                             children: [
                               buildEditableRow([
                                 TextField(
-                                    controller: _fechaMuestreoController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Fecha Muestreo')),
+                                  controller: _fechaMuestreoController,
+                                  enabled: _editable,
+                                  onChanged: (value) {
+                                    _fechaMuestreoModificada = true;
+                                  },
+                                  decoration: const InputDecoration(
+                                      labelText: 'Fecha Muestreo'),
+                                ),
                                 TextField(
-                                    controller: _pesosiembraController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Peso Siembra')),
+                                  controller: _pesosiembraController,
+                                  enabled: _editable,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Peso Siembra'),
+                                ),
                               ], Colors.transparent, isHeader: true),
                               buildEditableRow([
                                 TextField(
