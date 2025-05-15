@@ -6,11 +6,11 @@ import 'planificacion_semanal_table.dart';
 import 'aireadores_rendimiento_table.dart';
 import 'totales_recomendaciones_table.dart';
 
-class ResumenTablasCAMANOVILLO extends StatelessWidget {
+class ResumenTablas extends StatelessWidget {
   final Map<String, String> data;
   final String typeFinca;
 
-  const ResumenTablasCAMANOVILLO({super.key, required this.data, required this.typeFinca});
+  const ResumenTablas({super.key, required this.data, required this.typeFinca});
 
   @override
   Widget build(BuildContext context) {

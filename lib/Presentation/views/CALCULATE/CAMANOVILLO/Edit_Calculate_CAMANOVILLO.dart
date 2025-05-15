@@ -7,7 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/Edit/resumen_tablas_camanovillo.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/Edit/resumen_tablas.dart';
 import 'package:sufaweb/env_loader.dart';
 
 class Edit_Calculate_CAMANOVILLO extends StatefulWidget {
@@ -156,13 +156,15 @@ class _Edit_Calculate_CAMANOVILLOState
   bool _editable = true;
   bool _Show_editable = false;
   late DatabaseReference _ref;
-  final String _selectedFinca = 'CAMANOVILLO';
+  String _selectedFinca = 'CAMANOVILLO';
   final basePath = EnvLoader.get('RESULT_ALIMENTATION');
-
+  String? selectedHectareas;
+  String? selectedPiscinas;
   List<Map<String, dynamic>> CAMANOVILLOData = [];
   List<Map<String, dynamic>> rendimientoData = [];
-  Map<double, double> referenciaTabla = {};
+  List<String> piscinasOptions_CAMANOVILLO = [];
 
+  Map<double, double> referenciaTabla = {};
   final DatabaseReference referenciaTabla3 =
       FirebaseDatabase.instance.ref(EnvLoader.get('PESOS_ALIMENTO')!);
 
@@ -195,6 +197,8 @@ class _Edit_Calculate_CAMANOVILLOState
     }
     _ref =
         FirebaseDatabase.instance.ref('$basePath/$_selectedFinca/${widget.id}');
+
+    _loadCamposIniciales();
     _loadData();
     _fetchDataTabla3();
 
@@ -228,6 +232,22 @@ class _Edit_Calculate_CAMANOVILLOState
     FCAConsumo();
     _calcularEdadCultivo();
     //_autoSaveChanges(); // <-- Esta función guarda automáticamente los cambios
+  }
+
+  Future<void> _loadCamposIniciales() async {
+    try {
+      final snapshot = await _ref.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+
+        // Extrae los valores y asigna a los controladores
+        _HectareasController.text = data['Hectareas']?.toString() ?? '';
+        _piscinasController.text = data['Piscinas']?.toString() ?? '';
+        _fechaSiembraController.text = data['Fechadesiembra']?.toString() ?? '';
+      }
+    } catch (e) {
+      print('Error cargando datos iniciales: $e');
+    }
   }
 
   void _agregarListeners() {
@@ -271,7 +291,6 @@ class _Edit_Calculate_CAMANOVILLOState
     _HAireadoresMecanicosController.addListener(CalcularLBSHaActualCampo);
   }
 
-  // Método para calcular la densidad de consumo
   void _calcularSacosActuales() {
     double alimentoKg =
         double.tryParse(_alimentoactualkgController.text) ?? 0.0;
@@ -283,43 +302,39 @@ class _Edit_Calculate_CAMANOVILLOState
 
   void _calcularEdadCultivo() {
     try {
-      if (_fechaSiembraController.text.trim().isEmpty ||
-          _fechaMuestreoController.text.trim().isEmpty) {
-        print("⚠️ Error: Una o ambas fechas están vacías.");
-        return;
-      }
-
-      DateTime fechaSiembra =
-          DateFormat('dd/MM/yyyy').parse(_fechaSiembraController.text);
-      DateTime fechaMuestreo =
-          DateFormat('dd/MM/yyyy').parse(_fechaMuestreoController.text);
-
-      print(
-          "Fecha de siembra: ${_fechaSiembraController.text}, Fecha de muestreo: ${_fechaMuestreoController.text}");
-
-      int diferenciaDias = fechaMuestreo.difference(fechaSiembra).inDays;
-
-      print("Diferencia de días: $diferenciaDias");
-
-      if (diferenciaDias < 0) {
-        print(
-            "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
-        return;
-      }
-
       setState(() {
-        _edadCultivoController.text = diferenciaDias.toString();
-      });
+        if (_fechaSiembraController.text.trim().isEmpty ||
+            _fechaMuestreoController.text.trim().isEmpty) {
+          print("⚠️ Error: Una o ambas fechas están vacías.");
+          return;
+        }
 
-      _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
+        DateTime fechaSiembra =
+            DateFormat('dd/MM/yyyy').parse(_fechaSiembraController.text);
+        DateTime fechaMuestreo =
+            DateFormat('dd/MM/yyyy').parse(_fechaMuestreoController.text);
+
+        int diferenciaDias = fechaMuestreo.difference(fechaSiembra).inDays;
+
+        if (diferenciaDias < 0) {
+          print(
+              "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
+          return;
+        }
+        int masuno =
+            diferenciaDias + 1; // Ajustar para incluir el día de siembra
+        _edadCultivoController.text = masuno.toString();
+      });
+      setState(() {
+        _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
+      });
     } catch (e) {
       print('⚠️ Error en el cálculo de la edad del cultivo: $e');
     }
   }
 
   void _incrementogr() {
-    double pesoActual =
-        double.tryParse(_controllers['pesoactualgdia']?.text ?? '') ?? 0;
+    double pesoActual = double.tryParse(_pesoactualgdiaController.text) ?? 0;
     double pesoAnterior = double.tryParse(_pesoanteriorController.text) ?? 0;
 
     if (pesoAnterior == 0) {
@@ -405,17 +420,113 @@ class _Edit_Calculate_CAMANOVILLOState
     _calcularCrecimientoEsperado(pesoProyectado);
   }
 
+  void _calcularDensidadConsumo() async {
+    try {
+      // Obtener y validar inputs del usuario
+      double alimentoActualKg =
+          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
+      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
+      double pesoActualG =
+          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
+
+      print("Peso Actual G: $pesoActualG");
+      print("Hectáreas: $hectareas");
+      print("Alimento Actual Kg: $alimentoActualKg");
+
+      if (hectareas == 0 || pesoActualG == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Datos inválidos";
+        });
+        return;
+      }
+
+      // Obtener los datos de Firebase
+      DatabaseEvent event = await referenciaTabla3.once();
+      DataSnapshot snapshot = event.snapshot;
+
+      if (snapshot.value == null) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "No hay datos";
+        });
+        return;
+      }
+
+      // Procesar los datos como lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      // Convertir porcentaje BWCosechas a decimal
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      print("BWCosechas: $bwCosechas");
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Calcular densidad de consumo
+      double densidadConsumo = (alimentoActualKg / hectareas) *
+          10 /
+          (pesoActualG * (bwCosechasDecimal));
+      print("Densidad Consumo: $densidadConsumo");
+
+      // Mostrar el resultado
+      setState(() {
+        _densidadconsumoim2Controller.text = densidadConsumo.toStringAsFixed(2);
+      });
+    } catch (e) {
+      print("Error al calcular densidad: $e");
+      setState(() {
+        _densidadconsumoim2Controller.text = "Error";
+      });
+    }
+  }
+
   // Método para calcular el crecimiento esperado en porcentaje
   void diferenciacampobiologo() {
-    bool densidadconsumo = _densidadconsumoim2Controller.text.isNotEmpty;
-    bool densidadbiologo = _densidadbiologoindm2Controller.text.isNotEmpty;
+    String consumoText = _densidadconsumoim2Controller.text.trim();
+    String biologoText = _densidadbiologoindm2Controller.text.trim();
 
-    if (densidadconsumo && densidadbiologo) {
-      double densidadconsumo = double.parse(_densidadconsumoim2Controller.text);
-      double densidadbiologo =
-          double.parse(_densidadbiologoindm2Controller.text);
+    double? densidadconsumo = double.tryParse(consumoText);
+    double? densidadbiologo = double.tryParse(biologoText);
 
-      // Calcula la diferencia como porcentaje y redondea a entero
+    if (densidadconsumo != null &&
+        densidadbiologo != null &&
+        densidadbiologo != 0) {
       double diferencia = ((densidadconsumo / densidadbiologo) - 1) * 100;
       int porcentaje = diferencia.round();
 
@@ -424,7 +535,7 @@ class _Edit_Calculate_CAMANOVILLOState
       });
     } else {
       setState(() {
-        _diferenciacampobiologoController.text = "0"; // Valor por defecto
+        _diferenciacampobiologoController.text = "0";
       });
     }
   }
@@ -454,67 +565,6 @@ class _Edit_Calculate_CAMANOVILLOState
     }
   }
 
-  void _calcularDensidadConsumo() async {
-    try {
-      double alimentoActualKg =
-          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
-      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
-      double pesoActualG =
-          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
-
-      // Referencia a la base de datos
-
-      // Obtener los datos de Firebase
-      DatabaseEvent event = await referenciaTabla3.once();
-      DataSnapshot snapshot = event.snapshot;
-
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Filtrar los datos para encontrar el peso más cercano sin superar
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-
-        bwCosechasDecimal /= 100;
-
-        // Aplicar la fórmula
-        double densidadConsumo = (alimentoActualKg / hectareas) *
-            10 /
-            (pesoActualG * (bwCosechasDecimal * 100));
-
-        // Mostrar el resultado en _densidadconsumoim2Controller
-        setState(() {
-          _densidadconsumoim2Controller.text =
-              densidadConsumo.toStringAsFixed(2);
-        });
-      } else {
-        setState(() {
-          _densidadconsumoim2Controller.text = "No hay datos";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _densidadconsumoim2Controller.text = "Error";
-      });
-    }
-  }
-
   void _calcularkg100mil() {
     double alimentoKg =
         double.tryParse(_alimentoactualkgController.text) ?? 0.0;
@@ -538,56 +588,84 @@ class _Edit_Calculate_CAMANOVILLOState
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoActualG == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
       // Obtener los datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double LunesDia1 =
-            ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
-
-        setState(() {
-          // Si hay un error, asignar 25 en lugar de un número vacío
-          _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
-              ? "25"
-              : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _LunesDia1Controller.text = "No hay datos";
         });
+        return;
       }
+
+      // Convertir datos a lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _LunesDia1Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el peso actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Cálculo
+      double LunesDia1 =
+          ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
+
+      setState(() {
+        _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
+            ? "25"
+            : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular LunesDia1: $e");
       setState(() {
         _LunesDia1Controller.text = "Error";
       });
@@ -602,57 +680,83 @@ class _Edit_Calculate_CAMANOVILLOState
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoProject == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
-      // Obtener los datos de Firebase
+      // Obtener datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoProject && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double DomingoDia7 =
-            ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (DomingoDia7 ~/ 25) * 25;
-
-        // Si hay un error, asignar 25 en lugar de un número vacío
-        setState(() {
-          _DomingoDia7Controller.text =
-              (DomingoDia7.isNaN || DomingoDia7.isInfinite)
-                  ? "25"
-                  : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _DomingoDia7Controller.text = "No hay datos";
         });
+        return;
       }
+
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _DomingoDia7Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el proyectado
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoProject && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      double DomingoDia7 =
+          ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (DomingoDia7 / 25).round() * 25;
+
+      setState(() {
+        _DomingoDia7Controller.text =
+            (DomingoDia7.isNaN || DomingoDia7.isInfinite)
+                ? "25"
+                : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular DomingoDia7: $e");
       setState(() {
         _DomingoDia7Controller.text = "Error";
       });
@@ -1549,87 +1653,41 @@ class _Edit_Calculate_CAMANOVILLOState
     });
   }
 
-  bool _fechaMuestreoModificada = false;
-
-  // Método para actualizar los campos editables
-  void updateEditableFields() async {
-    double progress = 0.0;
-
-    // Mostrar barra de carga en un diálogo
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setDialogState) {
-            return AlertDialog(
-              title: const Text('Actualizando datos...'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LinearProgressIndicator(value: progress),
-                  const SizedBox(height: 20),
-                  Text('${(progress * 100).toStringAsFixed(0)}% completado'),
-                ],
-              ),
-            );
-          },
-        );
-      },
+  void _showAlert(BuildContext context, String message,
+      {bool isError = false}) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      backgroundColor: isError
+          ? const Color.fromARGB(255, 69, 69, 69)
+          : const Color.fromARGB(255, 69, 69, 69),
+      duration: const Duration(seconds: 3),
     );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
-    final dbRef = FirebaseDatabase.instance.ref(
-        '${EnvLoader.get('RESULT_ALIMENTATION')}/$_selectedFinca/${widget.id}');
-
+  void _saveDataAlimentation(BuildContext context) async {
     try {
-      final snapshot = await dbRef.get();
-      if (snapshot.exists) {
-        final data = snapshot.value as Map;
+      final List<String> requiredFields = [
+        _fechaMuestreoController.text,
+        _pesosiembraController.text,
+        _pesoanteriorController.text,
+        _pesoactualgdiaController.text,
+        _alimentoactualkgController.text,
+        _densidadbiologoindm2Controller.text,
+        _densidadatarrayaController.text,
+        _AcumuladoSemanalController.text,
+        _NumeroAAController.text,
+        _HAireadoresMecanicosController.text,
+      ];
 
-        final fechaSiembraDB = data['Fechadesiembra'];
-        if (_fechaSiembraController.text.trim().isEmpty &&
-            fechaSiembraDB != null &&
-            fechaSiembraDB is String) {
-          _fechaSiembraController.text = fechaSiembraDB;
-          print("📅 Fecha de siembra cargada desde Firebase.");
-        } else if (_fechaSiembraController.text.trim().isEmpty) {
-          print(
-              "⚠️ No se encontró una fecha de siembra válida en la base de datos.");
-          return;
-        }
-
-        final fechaMuestreoActual = _fechaMuestreoController.text.trim();
-        final fechaSiembraActual = _fechaSiembraController.text.trim();
-
-        if (_fechaMuestreoModificada) {
-          print("🚨 La fecha de muestreo ha sido modificada manualmente.");
-        }
-
-        if (fechaMuestreoActual.isNotEmpty && fechaSiembraActual.isNotEmpty) {
-          print("📊 Calculando edad del cultivo...");
-          print("📅 Fecha de siembra: $fechaSiembraActual");
-          print("📅 Fecha de muestreo: $fechaMuestreoActual");
-          _calcularEdadCultivo();
-        } else {
-          print("⚠️ Una o ambas fechas están vacías, no se calculó la edad.");
-        }
+      if (requiredFields.any((field) => field.isEmpty)) {
+        _showAlert(context,
+            '⚠️ Todos los campos deben estar llenos antes de subir los datos.',
+            isError: true);
+        return;
       }
 
-      // Cálculos por etapas
-      await Future.delayed(const Duration(milliseconds: 100));
-      progress = 0.15;
-      _showProgress(progress);
-
-      //_calcularDensidadConsumo();
-      //await Future.delayed(const Duration(milliseconds: 100));
-      //diferenciacampobiologo();
-      //_incrementogr();
-      //progress = 0.30;
-      //_showProgress(progress);
-
-      
-
-      final Map<String, dynamic> dataToUpdate = {
+      final Map<String, dynamic> data = {
         'Finca': _selectedFinca,
         'Hectareas': _HectareasController.text,
         'Piscinas': _piscinasController.text,
@@ -1678,43 +1736,23 @@ class _Edit_Calculate_CAMANOVILLOState
         'Pesoanterior': _pesoanteriorController.text,
         'Incrementogr': _incrementogrController.text,
       };
+      print("Data to save: $data");
+      final DatabaseReference dbRef = FirebaseDatabase.instance.ref(
+          '${EnvLoader.get('RESULT_ALIMENTATION')}/$_selectedFinca/${widget.id}');
 
-      await dbRef.update(dataToUpdate);
+      await dbRef.push().set(data);
 
       setState(() {
-        _Show_Edit();
+        _Show_editable = false;
       });
-    } catch (e) {
-      print("⚠️ Error obteniendo la fecha de siembra: $e");
-      return;
-    } finally {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Datos calculados y guardados exitosamente'),
-        ),
-      );
-    }
-  }
 
-  // Mostrar el diálogo con el progreso actualizado
-  void _showProgress(double progress) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Actualizando datos...'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinearProgressIndicator(value: progress),
-              const SizedBox(height: 20),
-              Text('${(progress * 100).toStringAsFixed(0)}% completado'),
-            ],
-          ),
-        );
-      },
-    );
+      await Future.delayed(const Duration(
+          milliseconds: 300)); // deja tiempo a Flutter para renderizar
+
+      _showAlert(context, '✅ Datos guardados correctamente.');
+    } catch (e) {
+      _showAlert(context, '⚠️ Error al guardar datos: $e', isError: true);
+    }
   }
 
   @override
@@ -1849,9 +1887,6 @@ class _Edit_Calculate_CAMANOVILLOState
                                 TextField(
                                   controller: _fechaMuestreoController,
                                   enabled: _editable,
-                                  onChanged: (value) {
-                                    _fechaMuestreoModificada = true;
-                                  },
                                   decoration: const InputDecoration(
                                       labelText: 'Fecha Muestreo'),
                                 ),
@@ -1864,24 +1899,24 @@ class _Edit_Calculate_CAMANOVILLOState
                               ], Colors.transparent, isHeader: true),
                               buildEditableRow([
                                 TextField(
-                                  controller: _alimentoactualkgController,
-                                  enabled: _editable,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Alimento Actual (kg)'),
-                                ),
-                                TextField(
                                   controller: _pesoanteriorController,
                                   enabled: _editable,
                                   decoration: const InputDecoration(
                                       labelText: 'Peso Anterior'),
                                 ),
-                              ], const Color(0xfff3ece7), isHeader: true),
-                              buildEditableRow([
                                 TextField(
                                     controller: _pesoactualgdiaController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
                                         labelText: 'Peso Actual g/día')),
+                              ], const Color(0xfff3ece7), isHeader: true),
+                              buildEditableRow([
+                                TextField(
+                                  controller: _alimentoactualkgController,
+                                  enabled: _editable,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Alimento Actual (kg)'),
+                                ),
                                 TextField(
                                     controller: _densidadbiologoindm2Controller,
                                     enabled: _editable,
@@ -1895,27 +1930,28 @@ class _Edit_Calculate_CAMANOVILLOState
                                     decoration: const InputDecoration(
                                         labelText: 'Densidad Atarraya')),
                                 TextField(
-                                    controller: _NumeroAAController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Número AA')),
-                              ], const Color(0xfff3ece7), isHeader: true),
-                              buildEditableRow([
-                                TextField(
                                     controller: _AcumuladoactualLBSController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
                                         labelText: 'Acumulado actual (LBS)')),
+                              ], const Color(0xfff3ece7), isHeader: true),
+                              buildEditableRow([
+                                TextField(
+                                    controller: _NumeroAAController,
+                                    enabled: _editable,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Número AA')),
                                 TextField(
                                     controller: _HAireadoresMecanicosController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
-                                        labelText: 'H. Aireadores Mecánicos')),
+                                        labelText: '#. Aireadores Mecánicos')),
                               ], Colors.transparent, isHeader: true),
                               buildEditableRow([
                                 if (_editable)
                                   ElevatedButton(
-                                    onPressed: updateEditableFields,
+                                    onPressed: () =>
+                                        _saveDataAlimentation(context),
                                     child: const Text('💾 Actualizar'),
                                   ),
                                 Text(
@@ -1938,7 +1974,7 @@ class _Edit_Calculate_CAMANOVILLOState
                 ],
                 if (!_Show_editable) ...[
                   SingleChildScrollView(
-                    child: ResumenTablasCAMANOVILLO(
+                    child: ResumenTablas(
                       data: data,
                       typeFinca: _selectedFinca,
                     ),

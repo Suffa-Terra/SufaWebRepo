@@ -3,10 +3,13 @@
 import 'dart:async';
 import 'dart:convert'; // Para codificar y decodificar JSON
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:sufaweb/env_loader.dart';
 
 class IAWebViewScreen extends StatefulWidget {
   const IAWebViewScreen({super.key});
@@ -29,7 +32,7 @@ class _IAWebViewScreenState extends State<IAWebViewScreen>
   bool _isLoading = false; // Estado de carga
 
   final DatabaseReference _database =
-      FirebaseDatabase.instance.ref("Empresas/TerrawaSufalyng/Terrain");
+      FirebaseDatabase.instance.ref(EnvLoader.get("TERRAIN")!);
 
   String _result = '';
   String _selectedFinca = 'CAMANOVILLO';
@@ -113,6 +116,12 @@ class _IAWebViewScreenState extends State<IAWebViewScreen>
       )..show(context: context);
     }
   }
+
+  bool get isWeb => kIsWeb;
+  bool get isMobile =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
   void initState() {

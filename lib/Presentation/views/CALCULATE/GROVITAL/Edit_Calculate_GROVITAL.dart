@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:sufaweb/Presentation/views/CALCULATE/Widgets/Edit/resumen_tablas.dart';
 import 'package:sufaweb/env_loader.dart';
 
 class Edit_Calculate_GROVITAL extends StatefulWidget {
@@ -19,8 +20,7 @@ class Edit_Calculate_GROVITAL extends StatefulWidget {
       _Edit_Calculate_GROVITALState();
 }
 
-class _Edit_Calculate_GROVITALState
-    extends State<Edit_Calculate_GROVITAL> {
+class _Edit_Calculate_GROVITALState extends State<Edit_Calculate_GROVITAL> {
   final Map<String, TextEditingController> _controllers = {
     'AcumuladoactualLBS': TextEditingController(),
     'Acumuladosemanal': TextEditingController(),
@@ -155,17 +155,15 @@ class _Edit_Calculate_GROVITALState
   bool _editable = true;
   bool _Show_editable = false;
   late DatabaseReference _ref;
-  final String _selectedFinca = 'GROVITAL';
+  String _selectedFinca = 'GROVITAL';
   final basePath = EnvLoader.get('RESULT_ALIMENTATION');
-
+  String? selectedHectareas;
+  String? selectedPiscinas;
   List<Map<String, dynamic>> GROVITALData = [];
   List<Map<String, dynamic>> rendimientoData = [];
-  Map<double, double> referenciaTabla = {};
+  List<String> piscinasOptions_GROVITAL = [];
 
-  final DatabaseReference _GROVITALRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('GROVITAL_ROWS')!);
-  final DatabaseReference _rendimientoRef =
-      FirebaseDatabase.instance.ref(EnvLoader.get('RENDIMIENTO_ROWS')!);
+  Map<double, double> referenciaTabla = {};
   final DatabaseReference referenciaTabla3 =
       FirebaseDatabase.instance.ref(EnvLoader.get('PESOS_ALIMENTO')!);
 
@@ -198,6 +196,8 @@ class _Edit_Calculate_GROVITALState
     }
     _ref =
         FirebaseDatabase.instance.ref('$basePath/$_selectedFinca/${widget.id}');
+
+    _loadCamposIniciales();
     _loadData();
     _fetchDataTabla3();
 
@@ -231,6 +231,22 @@ class _Edit_Calculate_GROVITALState
     FCAConsumo();
     _calcularEdadCultivo();
     //_autoSaveChanges(); // <-- Esta función guarda automáticamente los cambios
+  }
+
+  Future<void> _loadCamposIniciales() async {
+    try {
+      final snapshot = await _ref.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+
+        // Extrae los valores y asigna a los controladores
+        _HectareasController.text = data['Hectareas']?.toString() ?? '';
+        _piscinasController.text = data['Piscinas']?.toString() ?? '';
+        _fechaSiembraController.text = data['Fechadesiembra']?.toString() ?? '';
+      }
+    } catch (e) {
+      print('Error cargando datos iniciales: $e');
+    }
   }
 
   void _agregarListeners() {
@@ -274,7 +290,6 @@ class _Edit_Calculate_GROVITALState
     _HAireadoresMecanicosController.addListener(CalcularLBSHaActualCampo);
   }
 
-  // Método para calcular la densidad de consumo
   void _calcularSacosActuales() {
     double alimentoKg =
         double.tryParse(_alimentoactualkgController.text) ?? 0.0;
@@ -305,7 +320,9 @@ class _Edit_Calculate_GROVITALState
               "⚠️ Error: La fecha de muestreo no puede ser anterior a la de siembra.");
           return;
         }
-        _edadCultivoController.text = diferenciaDias.toString();
+        int masuno =
+            diferenciaDias + 1; // Ajustar para incluir el día de siembra
+        _edadCultivoController.text = masuno.toString();
       });
       setState(() {
         _calcularCrecimientoActual(); // 🚀 Disparar automáticamente
@@ -316,8 +333,7 @@ class _Edit_Calculate_GROVITALState
   }
 
   void _incrementogr() {
-    double pesoActual =
-        double.tryParse(_controllers['pesoactualgdia']?.text ?? '') ?? 0;
+    double pesoActual = double.tryParse(_pesoactualgdiaController.text) ?? 0;
     double pesoAnterior = double.tryParse(_pesoanteriorController.text) ?? 0;
 
     if (pesoAnterior == 0) {
@@ -403,17 +419,113 @@ class _Edit_Calculate_GROVITALState
     _calcularCrecimientoEsperado(pesoProyectado);
   }
 
+  void _calcularDensidadConsumo() async {
+    try {
+      // Obtener y validar inputs del usuario
+      double alimentoActualKg =
+          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
+      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
+      double pesoActualG =
+          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
+
+      print("Peso Actual G: $pesoActualG");
+      print("Hectáreas: $hectareas");
+      print("Alimento Actual Kg: $alimentoActualKg");
+
+      if (hectareas == 0 || pesoActualG == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Datos inválidos";
+        });
+        return;
+      }
+
+      // Obtener los datos de Firebase
+      DatabaseEvent event = await referenciaTabla3.once();
+      DataSnapshot snapshot = event.snapshot;
+
+      if (snapshot.value == null) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "No hay datos";
+        });
+        return;
+      }
+
+      // Procesar los datos como lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _densidadconsumoim2Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      // Convertir porcentaje BWCosechas a decimal
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      print("BWCosechas: $bwCosechas");
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _densidadconsumoim2Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Calcular densidad de consumo
+      double densidadConsumo = (alimentoActualKg / hectareas) *
+          10 /
+          (pesoActualG * (bwCosechasDecimal));
+      print("Densidad Consumo: $densidadConsumo");
+
+      // Mostrar el resultado
+      setState(() {
+        _densidadconsumoim2Controller.text = densidadConsumo.toStringAsFixed(2);
+      });
+    } catch (e) {
+      print("Error al calcular densidad: $e");
+      setState(() {
+        _densidadconsumoim2Controller.text = "Error";
+      });
+    }
+  }
+
   // Método para calcular el crecimiento esperado en porcentaje
   void diferenciacampobiologo() {
-    bool densidadconsumo = _densidadconsumoim2Controller.text.isNotEmpty;
-    bool densidadbiologo = _densidadbiologoindm2Controller.text.isNotEmpty;
+    String consumoText = _densidadconsumoim2Controller.text.trim();
+    String biologoText = _densidadbiologoindm2Controller.text.trim();
 
-    if (densidadconsumo && densidadbiologo) {
-      double densidadconsumo = double.parse(_densidadconsumoim2Controller.text);
-      double densidadbiologo =
-          double.parse(_densidadbiologoindm2Controller.text);
+    double? densidadconsumo = double.tryParse(consumoText);
+    double? densidadbiologo = double.tryParse(biologoText);
 
-      // Calcula la diferencia como porcentaje y redondea a entero
+    if (densidadconsumo != null &&
+        densidadbiologo != null &&
+        densidadbiologo != 0) {
       double diferencia = ((densidadconsumo / densidadbiologo) - 1) * 100;
       int porcentaje = diferencia.round();
 
@@ -422,7 +534,7 @@ class _Edit_Calculate_GROVITALState
       });
     } else {
       setState(() {
-        _diferenciacampobiologoController.text = "0"; // Valor por defecto
+        _diferenciacampobiologoController.text = "0";
       });
     }
   }
@@ -452,67 +564,6 @@ class _Edit_Calculate_GROVITALState
     }
   }
 
-  void _calcularDensidadConsumo() async {
-    try {
-      double alimentoActualKg =
-          double.tryParse(_alimentoactualkgController.text) ?? 0.0;
-      double hectareas = double.tryParse(_HectareasController.text) ?? 1.0;
-      double pesoActualG =
-          double.tryParse(_pesoactualgdiaController.text) ?? 1.0;
-
-      // Referencia a la base de datos
-
-      // Obtener los datos de Firebase
-      DatabaseEvent event = await referenciaTabla3.once();
-      DataSnapshot snapshot = event.snapshot;
-
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Filtrar los datos para encontrar el peso más cercano sin superar
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-
-        bwCosechasDecimal /= 100;
-
-        // Aplicar la fórmula
-        double densidadConsumo = (alimentoActualKg / hectareas) *
-            10 /
-            (pesoActualG * (bwCosechasDecimal * 100));
-
-        // Mostrar el resultado en _densidadconsumoim2Controller
-        setState(() {
-          _densidadconsumoim2Controller.text =
-              densidadConsumo.toStringAsFixed(2);
-        });
-      } else {
-        setState(() {
-          _densidadconsumoim2Controller.text = "No hay datos";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _densidadconsumoim2Controller.text = "Error";
-      });
-    }
-  }
-
   void _calcularkg100mil() {
     double alimentoKg =
         double.tryParse(_alimentoactualkgController.text) ?? 0.0;
@@ -536,56 +587,84 @@ class _Edit_Calculate_GROVITALState
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoActualG == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
       // Obtener los datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoActualG && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double LunesDia1 =
-            ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
-
-        setState(() {
-          // Si hay un error, asignar 25 en lugar de un número vacío
-          _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
-              ? "25"
-              : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _LunesDia1Controller.text = "No hay datos";
         });
+        return;
       }
+
+      // Convertir datos a lista de mapas
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _LunesDia1Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el peso actual
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoActualG && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _LunesDia1Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      // Cálculo
+      double LunesDia1 =
+          ((pesoActualG / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (LunesDia1 / 25).round() * 25;
+
+      setState(() {
+        _LunesDia1Controller.text = (LunesDia1.isNaN || LunesDia1.isInfinite)
+            ? "25"
+            : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular LunesDia1: $e");
       setState(() {
         _LunesDia1Controller.text = "Error";
       });
@@ -600,57 +679,83 @@ class _Edit_Calculate_GROVITALState
       double densidadBiologo =
           double.tryParse(_densidadbiologoindm2Controller.text) ?? 1.0;
 
-      // Referencia a la base de datos
+      if (pesoProject == 0 || hectareaje == 0 || densidadBiologo == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "Datos inválidos";
+        });
+        return;
+      }
 
-      // Obtener los datos de Firebase
+      // Obtener datos de Firebase
       DatabaseEvent event = await referenciaTabla3.once();
       DataSnapshot snapshot = event.snapshot;
 
-      if (snapshot.value != null && snapshot.value is List) {
-        List<dynamic> data = snapshot.value as List;
-
-        // Buscar el peso más cercano sin superar el peso actual
-        double pesoEncontrado = 0.0;
-        String bwCosechas = "0%";
-
-        for (var row in data) {
-          if (row is Map &&
-              row.containsKey("Pesos") &&
-              row.containsKey("BWCosechas")) {
-            double peso = (row["Pesos"] as num).toDouble();
-            if (peso <= pesoProject && peso > pesoEncontrado) {
-              pesoEncontrado = peso;
-              bwCosechas = row["BWCosechas"];
-            }
-          }
-        }
-
-        // Convertir el porcentaje de BWCosechas a decimal
-        double bwCosechasDecimal =
-            double.tryParse(bwCosechas.replaceAll('%', '')) ?? 0.0;
-        bwCosechasDecimal /= 100; // Convertir porcentaje a decimal
-
-        // Cálculo de LunesDia1
-        double DomingoDia7 =
-            ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
-                bwCosechasDecimal;
-
-        // Redondeo al múltiplo de 25 más cercano
-        int resultadoRedondeado = (DomingoDia7 ~/ 25) * 25;
-
-        // Si hay un error, asignar 25 en lugar de un número vacío
-        setState(() {
-          _DomingoDia7Controller.text =
-              (DomingoDia7.isNaN || DomingoDia7.isInfinite)
-                  ? "25"
-                  : resultadoRedondeado.toString();
-        });
-      } else {
+      if (snapshot.value == null) {
         setState(() {
           _DomingoDia7Controller.text = "No hay datos";
         });
+        return;
       }
+
+      List<Map<String, dynamic>> data = [];
+      final rawData = snapshot.value;
+
+      if (rawData is Map) {
+        data = rawData.values
+            .where((e) => e is Map)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (rawData is List) {
+        data = rawData
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else {
+        setState(() {
+          _DomingoDia7Controller.text = "Formato de datos inválido";
+        });
+        return;
+      }
+
+      // Buscar el peso más cercano sin superar el proyectado
+      double pesoEncontrado = 0.0;
+      String bwCosechas = "0%";
+
+      for (var row in data) {
+        if (row.containsKey("Pesos") && row.containsKey("BWCosechas")) {
+          double? peso = double.tryParse(row["Pesos"].toString());
+          if (peso != null && peso <= pesoProject && peso > pesoEncontrado) {
+            pesoEncontrado = peso;
+            bwCosechas = row["BWCosechas"].toString();
+          }
+        }
+      }
+
+      double bwCosechasDecimal =
+          double.tryParse(bwCosechas.replaceAll('%', '').trim()) ?? 0.0;
+      bwCosechasDecimal /= 100;
+
+      if (bwCosechasDecimal == 0) {
+        setState(() {
+          _DomingoDia7Controller.text = "BWCosechas inválido";
+        });
+        return;
+      }
+
+      double DomingoDia7 =
+          ((pesoProject / 1000) * ((densidadBiologo * 10000) * hectareaje)) *
+              bwCosechasDecimal;
+
+      int resultadoRedondeado = (DomingoDia7 / 25).round() * 25;
+
+      setState(() {
+        _DomingoDia7Controller.text =
+            (DomingoDia7.isNaN || DomingoDia7.isInfinite)
+                ? "25"
+                : resultadoRedondeado.toString();
+      });
     } catch (e) {
+      print("Error al calcular DomingoDia7: $e");
       setState(() {
         _DomingoDia7Controller.text = "Error";
       });
@@ -1103,8 +1208,6 @@ class _Edit_Calculate_GROVITALState
       final data = snapshot.value as Map?;
 
       if (data != null) {
-        print("data: $data");
-        print("Claves recibidas:");
         data.keys.forEach((key) => print("-> $key"));
 
         // Cargar los valores de Firebase en los controladores
@@ -1135,12 +1238,16 @@ class _Edit_Calculate_GROVITALState
                   false); // Desbloquear si no está bloqueado
               for (final entry in _controllers.entries) {
                 entry.value.text = data[entry.key]?.toString() ?? '';
-                print("key: ${entry.key} value: ${entry.value.text}");
               }
             });
 
             // Llama a los cálculos después de cargar los datos
-            _dispararTodosLosCalculos();
+            if (_fechaSiembraController.text.isNotEmpty &&
+                _fechaMuestreoController.text.isNotEmpty) {
+              _dispararTodosLosCalculos();
+            } else {
+              print("⚠️ No se ejecutaron cálculos porque faltan fechas.");
+            }
           }
         });
       }
@@ -1331,13 +1438,16 @@ class _Edit_Calculate_GROVITALState
     'Marca AA',
     'LBS tolva actual campo',
     'LBS tolva',
-    'Aireadores',
   ];
 
-  final row6 = [
+  final row5_1 = [
+    'Aireadores',
     'Libras totales por Aireador',
     'Hp/Ha',
     'Recomendacion lbs/ha',
+  ];
+
+  final row6 = [
     'Libras totales campo',
     'Libras totales consumo',
   ];
@@ -1465,13 +1575,16 @@ class _Edit_Calculate_GROVITALState
       _controllers['MarcaAA']?.text ?? '',
       _controllers['LBStolvaactualcampo']?.text ?? '',
       _controllers['LBStolva']?.text ?? '',
-      _controllers['Aireadores']?.text ?? '',
     ];
 
-    final rowData6 = [
+    final rowData5_1 = [
+      _controllers['Aireadores']?.text ?? '',
       _controllers['LibrastotalesporAireador']?.text ?? '',
       _controllers['HpHa']?.text ?? '',
       _controllers['Recomendacionlbsha']?.text ?? '',
+    ];
+
+    final rowData6 = [
       _controllers['Librastotalescampo']?.text ?? '',
       _controllers['Librastotalesconsumo']?.text ?? '',
     ];
@@ -1486,6 +1599,7 @@ class _Edit_Calculate_GROVITALState
               "Alimentación Semanal", row3, rowData3, PdfColors.orange),
           buildTableSection("", row4, rowData4, PdfColors.orange),
           buildTableSection("Aireadores", row5, rowData5, PdfColors.blue),
+          buildTableSection("Aireadores", row5_1, rowData5_1, PdfColors.blue),
           buildTableSection("", row6, rowData6, PdfColors.blue),
         ],
       ),
@@ -1538,81 +1652,112 @@ class _Edit_Calculate_GROVITALState
     });
   }
 
-  // Método para actualizar los campos editables
-  void updateEditableFields() async {
-    _calcularEdadCultivo();
-    _calcularDensidadConsumo();
-    diferenciacampobiologo();
-    _incrementogr();
-    _calcularCrecimientoActual();
-    _calcularSacosActuales();
-    _calcularkg100mil();
-    _onDataChange(); // este ya incluye muchos cálculos
-    CalcularRendimientoLbsSaco();
-    CalcularLibrastotalescampo();
-    CalcularLBSTOLVAACTUAL();
-    CalcularLBSTOLVAConsumo();
-    librastotalesconsumo();
-    LibrastotalesporAireador();
-    CalcularHPHA();
-    FCACampo();
-    FCAConsumo();
-
-    await Future.delayed(const Duration(
-        milliseconds: 500)); // Pequeño delay para asegurar cálculos
-
-    final Map<String, dynamic> dataToUpdate = {
-      'Fechademuestreo': _fechaMuestreoController.text,
-      'Edaddelcultivo': _edadCultivoController.text,
-      'Pesosiembra': _pesosiembraController.text,
-      'Pesoanterior': _pesoanteriorController.text,
-      'Pesoactualgdia': _pesoactualgdiaController.text,
-      'Alimentoactualkg': _alimentoactualkgController.text,
-      'Densidadbiologoindm2': _densidadbiologoindm2Controller.text,
-      'DensidadporAtarraya': _densidadatarrayaController.text,
-      'numeroAA': _NumeroAAController.text,
-      'AcumuladoactualLBS': _AcumuladoactualLBSController.text,
-      'Aireadores': _HAireadoresMecanicosController.text,
-      // Puedes agregar más si lo deseas
-      'Librastotalescampo': _LibrastotalescampoController.text,
-      'Librastotalesconsumo': _LibrastotalesconsumoController.text,
-      'LBSTOLVAactualCampo': _LBSTOLVAactualCampoController.text,
-      'LBSTOLVASegunConsumo': _LBSTOLVASegunConsumoController.text,
-      'LibrastotalesporAireador': _LibrastotalesporAireadorController.text,
-      'HpHa': _HpHaController.text,
-      'Recomendacionlbsha': _RecomendacionLbshaController.text,
-      'FCACampo': _FCACampoController.text,
-      'FCAConsumo': _FCAConsumoController.text,
-      'RendimientoLbsSaco': _RendimientoLbsSacoController.text,
-      'Acumuladosemanal': _AcumuladoSemanalController.text,
-      'LBShaconsumo': _LBSHaConsumoController.text,
-      'LBShaactualcampo': _LBSHaActualCampoController.text,
-      'Densidadconsumoim2': _densidadconsumoim2Controller.text,
-      'Lunesdia1': _LunesDia1Controller.text,
-      'Martesdia2': _MartesDia2Controller.text,
-      'Miercolesdia3': _MiercolesDia3Controller.text,
-      'Juevesdia4': _JuevesDia4Controller.text,
-      'Viernesdia5': _ViernesDia5Controller.text,
-      'Sabadodia6': _SabadoDia6Controller.text,
-      'Domingodia7': _DomingoDia7Controller.text,
-      'Recomendationsemana': _RecomendationSemanaController.text,
-      'LBStolvaactualcampo': _LBSTOLVAactualCampoController.text,
-      'LBStolva': _LBSTOLVASegunConsumoController.text,
-    };
-
-    final dbRef = FirebaseDatabase.instance.ref(
-        '${EnvLoader.get('RESULT_ALIMENTATION')}/$_selectedFinca/${widget.id}');
-
-    await dbRef.update(dataToUpdate);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('✅ Datos calculados y guardados exitosamente')),
+  void _showAlert(BuildContext context, String message,
+      {bool isError = false}) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      backgroundColor: isError
+          ? const Color.fromARGB(255, 69, 69, 69)
+          : const Color.fromARGB(255, 69, 69, 69),
+      duration: const Duration(seconds: 3),
     );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void _saveDataAlimentation(BuildContext context) async {
+    try {
+      final List<String> requiredFields = [
+        _fechaMuestreoController.text,
+        _pesosiembraController.text,
+        _pesoanteriorController.text,
+        _pesoactualgdiaController.text,
+        _alimentoactualkgController.text,
+        _densidadbiologoindm2Controller.text,
+        _densidadatarrayaController.text,
+        _AcumuladoSemanalController.text,
+        _NumeroAAController.text,
+        _HAireadoresMecanicosController.text,
+      ];
+
+      if (requiredFields.any((field) => field.isEmpty)) {
+        _showAlert(context,
+            '⚠️ Todos los campos deben estar llenos antes de subir los datos.',
+            isError: true);
+        return;
+      }
+
+      final Map<String, dynamic> data = {
+        'Finca': _selectedFinca,
+        'Hectareas': _HectareasController.text,
+        'Piscinas': _piscinasController.text,
+        'Fechadesiembra': _fechaSiembraController.text,
+        'Fechademuestreo': _fechaMuestreoController.text,
+        'Edaddelcultivo': _edadCultivoController.text,
+        'Pesosiembra': _pesosiembraController.text,
+        'Pesoactualgdia': _pesoactualgdiaController.text,
+        'Crecimientoactualgdia': _crecimactualgdiaController.text,
+        'Pesoproyectadogdia': _pesoproyectadogdiaController.text,
+        'Crecimientoesperadogsem': _crecimientoesperadosemController.text,
+        'Alimentoactualkg': _alimentoactualkgController.text,
+        'Kg100mil': _kg100milController.text,
+        'Densidadconsumoim2': _densidadconsumoim2Controller.text,
+        'Densidadbiologoindm2': _densidadbiologoindm2Controller.text,
+        'DensidadporAtarraya': _densidadatarrayaController.text,
+        'Lunesdia1': _LunesDia1Controller.text,
+        'Martesdia2': _MartesDia2Controller.text,
+        'Miercolesdia3': _MiercolesDia3Controller.text,
+        'Juevesdia4': _JuevesDia4Controller.text,
+        'Viernesdia5': _ViernesDia5Controller.text,
+        'Sabadodia6': _SabadoDia6Controller.text,
+        'Domingodia7': _DomingoDia7Controller.text,
+        'Recomendationsemana': _RecomendationSemanaController.text,
+        'Acumuladosemanal': _AcumuladoSemanalController.text,
+        'numeroAA': _NumeroAAController.text,
+        'Aireadores': _HAireadoresMecanicosController.text,
+        'Aireadoresdiesel': _AireadoresdieselController.text,
+        'Capacidadcargaaireaccion': _CapacidadcargaaireaccionController.text,
+        'LBStolva': _LBSTOLVASegunConsumoController.text,
+        'Recomendacionlbsha': _RecomendacionLbshaController.text,
+        'LBShaactualcampo': _LBSHaActualCampoController.text,
+        'LBShaconsumo': _LBSHaConsumoController.text,
+        'Librastotalescampo': _LibrastotalescampoController.text,
+        'Librastotalesconsumo': _LibrastotalesconsumoController.text,
+        'LBStolvaactualcampo': _LBSTOLVAactualCampoController.text,
+        'LBStolvasconsumo': _LBSTOLVASegunConsumoController.text,
+        'HpHa': _HpHaController.text,
+        'FCACampo': _FCACampoController.text,
+        'FCAConsumo': _FCAConsumoController.text,
+        'RendimientoLbsSaco': _RendimientoLbsSacoController.text,
+        'LibrastotalesporAireador': _LibrastotalesporAireadorController.text,
+        'AcumuladoactualLBS': _AcumuladoactualLBSController.text,
+        'Diferenciacampobiologo': _diferenciacampobiologoController.text,
+        'Sacosactuales': _sacosactualesController.text,
+        'Pesoanterior': _pesoanteriorController.text,
+        'Incrementogr': _incrementogrController.text,
+      };
+      print("Data to save: $data");
+      final DatabaseReference dbRef = FirebaseDatabase.instance.ref(
+          '${EnvLoader.get('RESULT_ALIMENTATION')}/$_selectedFinca/${widget.id}');
+
+      await dbRef.push().set(data);
+
+      setState(() {
+        _Show_editable = false;
+      });
+
+      await Future.delayed(const Duration(
+          milliseconds: 300)); // deja tiempo a Flutter para renderizar
+
+      _showAlert(context, '✅ Datos guardados correctamente.');
+    } catch (e) {
+      _showAlert(context, '⚠️ Error al guardar datos: $e', isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    Map<String, String> data = _controllers.map((k, v) => MapEntry(k, v.text));
+
     TableRow buildEditableRow(List<Widget> widgets, Color color,
         {bool isHeader = false}) {
       return TableRow(
@@ -1629,102 +1774,6 @@ class _Edit_Calculate_GROVITALState
                   child: Center(child: widget),
                 ))
             .toList(),
-      );
-    }
-
-    final rowData1 = [
-      _controllers['Piscinas']?.text ?? '',
-      _controllers['Hectareas']?.text ?? '',
-      _controllers['Fechadesiembra']?.text ?? '',
-      _controllers['Fechademuestreo']?.text ?? '',
-      _controllers['Pesosiembra']?.text ?? '',
-      _controllers['Edaddelcultivo']?.text ?? '',
-      _controllers['Crecimientoactualgdia']?.text ?? '',
-      _controllers['Pesoanterior']?.text ?? '',
-      _controllers['Incrementogr']?.text ?? '',
-      _controllers['Pesoactualgdia']?.text ?? '',
-    ];
-
-    final rowData2 = [
-      _controllers['Pesoproyectadogdia']?.text ?? '',
-      _controllers['Crecimientoesperadogsem']?.text ?? '',
-      _controllers['Kg100mil']?.text ?? '',
-      _controllers['Alimentoactualkg']?.text ?? '',
-      _controllers['Sacosactuales']?.text ?? '',
-      _controllers['Densidadconsumoim2']?.text ?? '',
-      _controllers['Densidadbiologoindm2']?.text ?? '',
-      _controllers['DensidadporAtarraya']?.text ?? '',
-      _controllers['Diferenciacampobiologo']?.text ?? '',
-      '',
-    ];
-
-    final rowData3 = [
-      _controllers['Lunesdia1']?.text ?? '',
-      _controllers['Martesdia2']?.text ?? '',
-      _controllers['Miercolesdia3']?.text ?? '',
-      _controllers['Juevesdia4']?.text ?? '',
-      _controllers['Viernesdia5']?.text ?? '',
-      _controllers['Sabadodia6']?.text ?? '',
-      _controllers['Domingodia7']?.text ?? '',
-      _controllers['Recomendationsemana']?.text ?? '',
-    ];
-
-    final rowData4 = [
-      _controllers['Acumuladosemanal']?.text ?? '',
-      _controllers['TipoBalanceado']?.text ?? '',
-      _controllers['AcumuladoactualLBS']?.text ?? '',
-      _controllers['LBShaconsumo']?.text ?? '',
-      _controllers['LBShaactualcampo']?.text ?? '',
-      _controllers['FCACampo']?.text ?? '',
-      _controllers['FCAConsumo']?.text ?? '',
-      _controllers['RendimientoLbsSaco']?.text ?? '',
-    ];
-
-    final rowData5 = [
-      _controllers['numeroAA']?.text ?? '',
-      _controllers['MarcaAA']?.text ?? '',
-      _controllers['LBStolvaactualcampo']?.text ?? '',
-      _controllers['LBStolva']?.text ?? '',
-      _controllers['Aireadores']?.text ?? '',
-    ];
-    final rowData6 = [
-      _controllers['LibrastotalesporAireador']?.text ?? '',
-      _controllers['HpHa']?.text ?? '',
-      _controllers['Recomendacionlbsha']?.text ?? '',
-      _controllers['Librastotalescampo']?.text ?? '',
-      _controllers['Librastotalesconsumo']?.text ?? '',
-    ];
-
-    TableRow buildRow(List<String> values, Color color,
-        {bool isHeader = false}) {
-      return TableRow(
-        decoration: BoxDecoration(
-          border: Border.all(color: color),
-          borderRadius: BorderRadius.circular(12),
-          color: isHeader
-              ? color.withOpacity(0.1)
-              : const Color.fromARGB(255, 155, 155, 155).withOpacity(0.1),
-        ),
-        children: values.map((value) {
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            padding: const EdgeInsets.all(10),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-                    color: isHeader ? color : Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       );
     }
 
@@ -1835,16 +1884,31 @@ class _Edit_Calculate_GROVITALState
                             children: [
                               buildEditableRow([
                                 TextField(
-                                    controller: _fechaMuestreoController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Fecha Muestreo')),
+                                  controller: _fechaMuestreoController,
+                                  enabled: _editable,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Fecha Muestreo'),
+                                ),
                                 TextField(
-                                    controller: _pesosiembraController,
+                                  controller: _pesosiembraController,
+                                  enabled: _editable,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Peso Siembra'),
+                                ),
+                              ], Colors.transparent, isHeader: true),
+                              buildEditableRow([
+                                TextField(
+                                  controller: _pesoanteriorController,
+                                  enabled: _editable,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Peso Anterior'),
+                                ),
+                                TextField(
+                                    controller: _pesoactualgdiaController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
-                                        labelText: 'Peso Siembra')),
-                              ], Colors.transparent, isHeader: true),
+                                        labelText: 'Peso Actual g/día')),
+                              ], const Color(0xfff3ece7), isHeader: true),
                               buildEditableRow([
                                 TextField(
                                   controller: _alimentoactualkgController,
@@ -1852,19 +1916,6 @@ class _Edit_Calculate_GROVITALState
                                   decoration: const InputDecoration(
                                       labelText: 'Alimento Actual (kg)'),
                                 ),
-                                TextField(
-                                  controller: _pesoanteriorController,
-                                  enabled: _editable,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Peso Anterior'),
-                                ),
-                              ], const Color(0xfff3ece7), isHeader: true),
-                              buildEditableRow([
-                                TextField(
-                                    controller: _pesoactualgdiaController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Peso Actual g/día')),
                                 TextField(
                                     controller: _densidadbiologoindm2Controller,
                                     enabled: _editable,
@@ -1878,27 +1929,28 @@ class _Edit_Calculate_GROVITALState
                                     decoration: const InputDecoration(
                                         labelText: 'Densidad Atarraya')),
                                 TextField(
-                                    controller: _NumeroAAController,
-                                    enabled: _editable,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Número AA')),
-                              ], const Color(0xfff3ece7), isHeader: true),
-                              buildEditableRow([
-                                TextField(
                                     controller: _AcumuladoactualLBSController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
                                         labelText: 'Acumulado actual (LBS)')),
+                              ], const Color(0xfff3ece7), isHeader: true),
+                              buildEditableRow([
+                                TextField(
+                                    controller: _NumeroAAController,
+                                    enabled: _editable,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Número AA')),
                                 TextField(
                                     controller: _HAireadoresMecanicosController,
                                     enabled: _editable,
                                     decoration: const InputDecoration(
-                                        labelText: 'H. Aireadores Mecánicos')),
+                                        labelText: '#. Aireadores Mecánicos')),
                               ], Colors.transparent, isHeader: true),
                               buildEditableRow([
                                 if (_editable)
                                   ElevatedButton(
-                                    onPressed: updateEditableFields,
+                                    onPressed: () =>
+                                        _saveDataAlimentation(context),
                                     child: const Text('💾 Actualizar'),
                                   ),
                                 Text(
@@ -1920,102 +1972,10 @@ class _Edit_Calculate_GROVITALState
                   ),
                 ],
                 if (!_Show_editable) ...[
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 600),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 10),
-                              const Text(
-                                "📌 Datos Generales",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row1, Colors.teal, isHeader: true),
-                                    buildRow(rowData1, Colors.transparent),
-                                    buildRow(row2, Colors.teal, isHeader: true),
-                                    buildRow(rowData2, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "🍤 Alimentación Semanal",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row3, Colors.orange,
-                                        isHeader: true),
-                                    buildRow(rowData3, Colors.transparent),
-                                    buildRow(row4, Colors.orange,
-                                        isHeader: true),
-                                    buildRow(rowData4, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "💨 Aireadores",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 126, 53, 0),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(140),
-                                  children: [
-                                    buildRow(row5, Colors.blue, isHeader: true),
-                                    buildRow(rowData5, Colors.transparent),
-                                    buildRow(row6, Colors.blue, isHeader: true),
-                                    buildRow(rowData6, Colors.transparent),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
+                  SingleChildScrollView(
+                    child: ResumenTablas(
+                      data: data,
+                      typeFinca: _selectedFinca,
                     ),
                   ),
                 ],
