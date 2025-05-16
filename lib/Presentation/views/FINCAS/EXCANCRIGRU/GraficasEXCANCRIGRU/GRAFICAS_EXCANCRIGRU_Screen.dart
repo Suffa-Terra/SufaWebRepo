@@ -1,13 +1,14 @@
-// ignore_for_file: unused_local_variable, unnecessary_null_comparison, unused_import
+// ignore_for_file: deprecated_member_use
 
-import 'dart:math';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:sufaweb/Presentation/Utils/gradient_colors.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:sufaweb/env_loader.dart';
+import 'package:intl/intl.dart';
 
 class GRAFICAS_EXCANCRIGRU_Screen extends StatefulWidget {
-  const GRAFICAS_EXCANCRIGRU_Screen({super.key});
+  const GRAFICAS_EXCANCRIGRU_Screen({Key? key}) : super(key: key);
 
   @override
   _GRAFICAS_EXCANCRIGRU_ScreenState createState() =>
@@ -16,459 +17,431 @@ class GRAFICAS_EXCANCRIGRU_Screen extends StatefulWidget {
 
 class _GRAFICAS_EXCANCRIGRU_ScreenState
     extends State<GRAFICAS_EXCANCRIGRU_Screen> {
-  final databaseReference = FirebaseDatabase.instance
-      .ref("Empresas/TerrawaSufalyng/Result/Dato/EXCANCRIGRU");
+  static const String _selectedFinca = 'EXCANCRIGRU';
 
-  List<Map<String, dynamic>> resut_ = [];
-  String selectedValue =
-      'Consumo'; // Valor por defecto para mostrar en la gráfica
-  Map<int, Color> barColors = {};
+  late final DatabaseReference _databaseReference;
+  final List<Map<String, dynamic>> _result = [];
+  bool _showAllMetrics = false;
 
   @override
   void initState() {
     super.initState();
-    fetchData();
+    _databaseReference = FirebaseDatabase.instance
+        .ref('${EnvLoader.get('RESULT_DATO_BASE')}/$_selectedFinca');
+    _fetchData();
   }
 
-  void fetchData() {
-    databaseReference.once().then((DatabaseEvent snapshot) {
+  void _fetchData() {
+    _databaseReference.once().then((DatabaseEvent snapshot) {
       final data = snapshot.snapshot.value;
-      if (data != null) {
-        final resultList = (data as Map).entries.map((entry) {
-          final value = entry.value as Map<dynamic, dynamic>;
-          return {
-            'Piscina': value['Piscinas'] ?? 'Desconocida',
-            'Consumo': (value['Consumo'] ?? 0).toDouble(),
-            'Rendimiento': (value['Rendimiento'] ?? 0).toDouble(),
-            'LibrasTotal': (value['LibrasTotal']?.toDouble() ?? 0),
-            'KGXHA': (value['KGXHA']?.toDouble() ?? 0),
-            'Error2': (value['Error2']?.toDouble() ?? 0),
-            'AnimalesM': (value['AnimalesM']?.toDouble() ?? 0),
-            'Peso': (value['Peso']?.toDouble() ?? 0),
-            'Hectareas': (value['Hectareas']?.toString() ?? 0),
-            'FechaHora': (value['FechaHora'] != null
-                ? DateTime.tryParse(value['FechaHora'].toString())
-                : null),
-          };
-        }).toList();
+      if (data == null) return;
 
-        setState(() {
-          resut_ = resultList.take(5).toList();
-          List<Color> pastelColors = [
-            const Color(0xffaec6cf),
-            const Color(0xffffb3ba),
-            const Color(0xffc6e2ff),
-            const Color(0xffd3ffce),
-            const Color(0xffffd1dc),
-          ];
-          barColors = {
-            for (int i = 0; i < resut_.length; i++)
-              i: pastelColors[i % pastelColors.length]
-          };
-        });
+      final list = (data as Map).entries.map((entry) {
+        final value = entry.value as Map<dynamic, dynamic>;
+        return {
+          'Piscina': value['Piscinas'] ?? 'Desconocida',
+          'Consumo': (value['Consumo'] ?? 0).toDouble(),
+          'Rendimiento': (value['Rendimiento'] ?? 0).toDouble(),
+          'LibrasTotal': (value['LibrasTotal']?.toDouble() ?? 0.0),
+          'KGXHA': (value['KGXHA']?.toDouble() ?? 0.0),
+          'Error2': (value['Error2']?.toDouble() ?? 0.0),
+          'AnimalesM': (value['AnimalesM']?.toDouble() ?? 0.0),
+          'Peso': (value['Peso']?.toDouble() ?? 0.0),
+          'Hectareas': (value['Hectareas']?.toString() ?? '0'),
+          'FechaHora': value['FechaHora'] != null
+              ? DateTime.tryParse(value['FechaHora'].toString())
+              : null,
+        };
+      }).toList();
+
+      // Ordenar por fecha más reciente primero
+      list.sort((a, b) {
+        final dateA = a['FechaHora'] as DateTime? ?? DateTime(0);
+        final dateB = b['FechaHora'] as DateTime? ?? DateTime(0);
+        return dateB.compareTo(dateA);
+      });
+
+      // Agrupar por piscina y mantener solo el registro más reciente de cada piscina
+      final Map<String, Map<String, dynamic>> latestByPiscina = {};
+      for (var item in list) {
+        final piscina = item['Piscina'];
+        if (!latestByPiscina.containsKey(piscina)) {
+          latestByPiscina[piscina] = item;
+        }
       }
+
+      // Convertir a lista y tomar las primeras 5 piscinas
+      final latestPiscinas = latestByPiscina.values.toList();
+      final top5Piscinas = latestPiscinas.length > 5
+          ? latestPiscinas.sublist(0, 5)
+          : latestPiscinas;
+
+      setState(() {
+        _result
+          ..clear()
+          ..addAll(top5Piscinas);
+      });
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    bool isTablet = screenWidth > 600; // Determinar si es un tablet o no
-
-    return Scaffold(
-      backgroundColor: const Color(0xfff3ece7),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AspectRatio(
-                  // Ajustar la relación de aspecto según el tamaño de la pantalla
-                  aspectRatio: isTablet ? 1.7 : 1.2,
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: _getMaxY(),
-                      barGroups: resut_.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        Map<String, dynamic> data = entry.value;
-                        return BarChartGroupData(
-                          x: index,
-                          barRods: [
-                            BarChartRodData(
-                              toY: _getBarValue(data),
-                              color: barColors[index],
-                              width: isTablet
-                                  ? 30
-                                  : 20, // Ajusta el ancho de las barras
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              if (value.toInt() < resut_.length) {
-                                return Text(
-                                  'Pisc ${resut_[value.toInt()]['Piscina']}',
-                                  style: const TextStyle(fontSize: 12),
-                                );
-                              }
-                              return const Text('');
-                            },
-                            reservedSize: 42,
-                          ),
-                        ),
-                      ),
-                      gridData: const FlGridData(show: false),
-                    ),
+  Widget _buildAllMetricsChart() {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: getGradientColors(_selectedFinca),
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(20.0)),
+        boxShadow: const [
+          BoxShadow(
+            offset: Offset(10, 10),
+            color: Color.fromARGB(80, 0, 0, 0),
+            blurRadius: 10,
+          ),
+          BoxShadow(
+            offset: Offset(-10, -10),
+            color: Color.fromARGB(147, 202, 202, 202),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Métricas Completas por Piscina',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              // Botones para seleccionar el tipo de datos
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(40.0),
-                              bottomLeft: Radius.circular(40.0),
-                            ), // Opcional: bordes redondeados
-                            boxShadow: [
-                              BoxShadow(
-                                offset: Offset(5, 5),
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                blurRadius: 5,
-                              ),
-                              BoxShadow(
-                                  offset: Offset(-5, -5),
-                                  color: Color.fromARGB(150, 255, 255, 255),
-                                  blurRadius: 5),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .transparent, // Hacer el fondo transparente
-                              shadowColor:
-                                  Colors.transparent, // Eliminar la sombra
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                selectedValue = 'KGXHA';
-                              });
-                            },
-                            child: const Text('KGXHA'),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                            ),
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(40.0),
-                              bottomRight: Radius.circular(40.0),
-                            ), // Opcional: bordes redondeados
-                            boxShadow: [
-                              BoxShadow(
-                                offset: Offset(5, 5),
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                blurRadius: 5,
-                              ),
-                              BoxShadow(
-                                  offset: Offset(-5, -5),
-                                  color: Color.fromARGB(150, 255, 255, 255),
-                                  blurRadius: 5),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .transparent, // Hacer el fondo transparente
-                              shadowColor:
-                                  Colors.transparent, // Eliminar la sombra
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                selectedValue = 'LibrasTotal';
-                              });
-                            },
-                            child: const Text('LibrasTotal'),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(40.0),
-                              bottomLeft: Radius.circular(40.0),
-                            ), // Opcional: bordes redondeados
-                            boxShadow: [
-                              BoxShadow(
-                                offset: Offset(5, 5),
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                blurRadius: 5,
-                              ),
-                              BoxShadow(
-                                  offset: Offset(-5, -5),
-                                  color: Color.fromARGB(150, 255, 255, 255),
-                                  blurRadius: 5),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .transparent, // Hacer el fondo transparente
-                              shadowColor:
-                                  Colors.transparent, // Eliminar la sombra
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                selectedValue = 'LibrasXHA';
-                              });
-                            },
-                            child: const Text('LibrasXHA'),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xfff3ece7), Color(0xffe9f0f0)],
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                            ),
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(40.0),
-                              bottomRight: Radius.circular(40.0),
-                            ), // Opcional: bordes redondeados
-                            boxShadow: [
-                              BoxShadow(
-                                offset: Offset(5, 5),
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                blurRadius: 5,
-                              ),
-                              BoxShadow(
-                                  offset: Offset(-5, -5),
-                                  color: Color.fromARGB(150, 255, 255, 255),
-                                  blurRadius: 5),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .transparent, // Hacer el fondo transparente
-                              shadowColor:
-                                  Colors.transparent, // Eliminar la sombra
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                selectedValue = 'Error2';
-                              });
-                            },
-                            child: const Text('Error2'),
-                          ),
-                        ),
-                      ),
-                    ],
+                IconButton(
+                  icon: Icon(
+                    _showAllMetrics
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isTablet ? 2 : 1,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: isTablet
-                        ? 1.5
-                        : 1, // Ajustar la relación de aspecto para pantallas pequeñas
-                  ),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: resut_.length,
-                  itemBuilder: (context, index) {
-                    var result = resut_[index];
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Card(
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(40.0),
-                            bottomRight: Radius.circular(40.0),
-                          ),
-                        ),
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: barColors[index],
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(40.0),
-                              bottomRight: Radius.circular(40.0),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                offset: Offset(10, 10),
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                blurRadius: 5,
-                              ),
-                              BoxShadow(
-                                offset: Offset(-10, -10),
-                                color: Color.fromARGB(150, 255, 255, 255),
-                                blurRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 4.0, horizontal: 8.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'Piscina: ${result['Piscina']}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                      'FechaHora: ${result['FechaHora'] ?? "N/A"}'),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                                'Hectareas: ${result['Hectareas'] ?? "N/A"}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'Consumo: ${result['Consumo'].toStringAsFixed(2)}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'Peso: ${result['Peso'] ?? "N/A"}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'Rendimiento: ${result['Rendimiento'].toStringAsFixed(2)}'),
-                                            const SizedBox(height: 5),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                                'KGXHA: ${result['KGXHA'].toStringAsFixed(2)}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'Libras Total: ${result['LibrasTotal'].toStringAsFixed(2)}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'LibrasXHA: ${(result['LibrasTotal'] / 11.19).toStringAsFixed(2)}'),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                                'Error2: ${result['Error2'].toStringAsFixed(2)}'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                      'AnimalesM: ${result['AnimalesM']?.toStringAsFixed(2) ?? "N/A"}'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                  onPressed: () {
+                    setState(() {
+                      _showAllMetrics = !_showAllMetrics;
+                    });
                   },
                 ),
+              ],
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              child: SizedBox(
+                height: _showAllMetrics ? null : 0,
+                child: SfCartesianChart(
+                  primaryXAxis: const CategoryAxis(
+                    labelRotation: -45,
+                    labelIntersectAction: AxisLabelIntersectAction.rotate45,
+                  ),
+                  primaryYAxis: NumericAxis(
+                    numberFormat: NumberFormat.compact(),
+                  ),
+                  legend: const Legend(
+                    isVisible: true,
+                    position: LegendPosition.bottom,
+                    overflowMode: LegendItemOverflowMode.wrap,
+                  ),
+                  tooltipBehavior: TooltipBehavior(enable: true),
+                  series: [
+                    ColumnSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['Consumo'],
+                      name: 'Consumo',
+                      color: Colors.blue[400],
+                    ),
+                    ColumnSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['Rendimiento'],
+                      name: 'Rendimiento',
+                      color: Colors.green[400],
+                    ),
+                    LineSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['LibrasTotal'],
+                      name: 'Libras Total',
+                      color: Colors.orange[400],
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                    LineSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['KGXHA'],
+                      name: 'KGXHA',
+                      color: Colors.red[400],
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                    LineSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['Error2'],
+                      name: 'Error2',
+                      color: Colors.purple[400],
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                    LineSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['AnimalesM'],
+                      name: 'AnimalesM',
+                      color: Colors.teal[400],
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                    LineSeries<Map<String, dynamic>, String>(
+                      dataSource: _result,
+                      xValueMapper: (data, _) => data['Piscina'],
+                      yValueMapper: (data, _) => data['Peso'],
+                      name: 'Peso',
+                      color: Colors.indigo[400],
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  double _getBarValue(Map<String, dynamic> data) {
-    switch (selectedValue) {
-      case 'KGXHA':
-        return double.parse(data['KGXHA'].toStringAsFixed(2));
-      case 'LibrasTotal':
-        return double.parse(data['LibrasTotal'].toStringAsFixed(2));
-      case 'LibrasXHA':
-        return double.parse((data['LibrasTotal'] / 11.19).toStringAsFixed(2));
-      case 'Error2':
-        return double.parse(data['Error2'].toStringAsFixed(2));
+  @override
+  Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    final int crossAxisCount = screenWidth >= 1200
+        ? 3
+        : screenWidth >= 800
+            ? 2
+            : 1;
+
+    final List<Widget> chartCards = [
+      _buildSfChart(
+        title: 'KGXHA por Piscina',
+        yKey: 'KGXHA',
+        chartType: _ChartType.column,
+      ),
+      _buildSfChart(
+        title: 'Libras Totales por Piscina',
+        yKey: 'LibrasTotal',
+        chartType: _ChartType.doughnut,
+      ),
+      _buildSfChart(
+        title: 'Peso vs AnimalesM por Fecha',
+        yKey: 'Peso',
+        secondYKey: 'AnimalesM',
+        chartType: _ChartType.area,
+      ),
+      _buildSfChart(
+        title: 'Rendimiento vs Error2 por Piscina',
+        yKey: 'Rendimiento',
+        secondYKey: 'Error2',
+        chartType: _ChartType.stackedBar,
+      ),
+      _buildSfChart(
+        title: 'Peso vs LibrasXHA por Piscina',
+        yKey: 'Peso',
+        secondYKey: 'LibrasXHA',
+        chartType: _ChartType.groupedBar,
+      ),
+    ];
+
+    return Scaffold(
+      backgroundColor: const Color(0xfff3ece7),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: _result.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    _buildAllMetricsChart(),
+                    const SizedBox(height: 20),
+                    GridView.builder(
+                      itemCount: chartCards.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.9,
+                      ),
+                      itemBuilder: (context, index) => chartCards[index],
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSfChart({
+    required String title,
+    required String yKey,
+    String? secondYKey,
+    required _ChartType chartType,
+  }) {
+    return Container(
+      margin: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: getGradientColors(_selectedFinca),
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(20.0)),
+        boxShadow: const [
+          BoxShadow(
+            offset: Offset(10, 10),
+            color: Color.fromARGB(80, 0, 0, 0),
+            blurRadius: 10,
+          ),
+          BoxShadow(
+            offset: Offset(-10, -10),
+            color: Color.fromARGB(147, 202, 202, 202),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                child: chartType == _ChartType.doughnut
+                    ? SfCircularChart(
+                        legend: const Legend(isVisible: true),
+                        series: _buildCircularSeries(yKey),
+                      )
+                    : SfCartesianChart(
+                        primaryXAxis: const CategoryAxis(
+                          labelRotation: -45,
+                          labelIntersectAction:
+                              AxisLabelIntersectAction.rotate45,
+                        ),
+                        legend:
+                            Legend(isVisible: chartType != _ChartType.column),
+                        series:
+                            _buildCartesianSeries(chartType, yKey, secondYKey),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<CartesianSeries<Map<String, dynamic>, String>> _buildCartesianSeries(
+    _ChartType type,
+    String yKey,
+    String? secondYKey,
+  ) {
+    switch (type) {
+      case _ChartType.column:
+        return [
+          ColumnSeries<Map<String, dynamic>, String>(
+              dataSource: _result,
+              xValueMapper: (data, _) => data['Piscina'],
+              yValueMapper: (data, _) => data[yKey],
+              name: yKey),
+        ];
+      case _ChartType.area:
+        return [
+          AreaSeries<Map<String, dynamic>, String>(
+            dataSource: _result,
+            xValueMapper: (data, _) =>
+                data['FechaHora']?.toString().split(' ').first ?? '',
+            yValueMapper: (data, _) => data[yKey],
+            name: yKey,
+          ),
+          if (secondYKey != null)
+            AreaSeries<Map<String, dynamic>, String>(
+              dataSource: _result,
+              xValueMapper: (data, _) =>
+                  data['FechaHora']?.toString().split(' ').first ?? '',
+              yValueMapper: (data, _) => data[secondYKey],
+              name: secondYKey,
+            ),
+        ];
+      case _ChartType.stackedBar:
+        return [
+          StackedColumnSeries<Map<String, dynamic>, String>(
+            dataSource: _result,
+            xValueMapper: (data, _) => data['Piscina'],
+            yValueMapper: (data, _) => data[yKey],
+            name: yKey,
+          ),
+          if (secondYKey != null)
+            StackedColumnSeries<Map<String, dynamic>, String>(
+              dataSource: _result,
+              xValueMapper: (data, _) => data['Piscina'],
+              yValueMapper: (data, _) => data[secondYKey],
+              name: secondYKey,
+            ),
+        ];
+      case _ChartType.groupedBar:
+        return [
+          ColumnSeries<Map<String, dynamic>, String>(
+            dataSource: _result,
+            xValueMapper: (data, _) => data['Piscina'],
+            yValueMapper: (data, _) => data[yKey],
+            name: yKey,
+          ),
+          if (secondYKey != null)
+            ColumnSeries<Map<String, dynamic>, String>(
+              dataSource: _result,
+              xValueMapper: (data, _) => data['Piscina'],
+              yValueMapper: (data, _) => secondYKey == 'LibrasXHA'
+                  ? (data['LibrasTotal'] / 11.19)
+                  : data[secondYKey],
+              name: secondYKey,
+            ),
+        ];
       default:
-        return double.parse(data['Consumo'].toStringAsFixed(2));
+        return const [];
     }
   }
 
-  double _getMaxY() {
-    if (resut_.isEmpty) {
-      return 0;
-    }
-    double maxValue = resut_
-        .map((data) => _getBarValue(data))
-        .reduce((value, element) => value > element ? value : element);
-    return maxValue * 1.2;
+  List<CircularSeries<Map<String, dynamic>, String>> _buildCircularSeries(
+      String yKey) {
+    return [
+      DoughnutSeries<Map<String, dynamic>, String>(
+        dataSource: _result,
+        xValueMapper: (data, _) => data['Piscina'],
+        yValueMapper: (data, _) => data[yKey],
+        dataLabelSettings: const DataLabelSettings(isVisible: true),
+      ),
+    ];
   }
 }
+
+enum _ChartType { column, doughnut, area, stackedBar, groupedBar }
